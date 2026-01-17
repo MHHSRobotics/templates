@@ -28,6 +28,7 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import frc.robot.Constants;
@@ -43,7 +44,7 @@ public class MotorIOTalonFX extends MotorIO {
     private TalonFX motor;
     private TalonFXConfiguration config = new TalonFXConfiguration();
     private boolean configChanged = true;
-    private boolean coastOnNeutral = false;
+    private boolean brakeOnNeutral = false;
     private boolean disabled = false;
 
     private TalonFXSimState sim;
@@ -51,7 +52,7 @@ public class MotorIOTalonFX extends MotorIO {
     // Control objects (one per control mode)
     private CoastOut coast = new CoastOut();
     private StaticBrake brake = new StaticBrake();
-    
+
     private DutyCycleOut dutyCycle = new DutyCycleOut(0);
     private VoltageOut voltage = new VoltageOut(0);
     private TorqueCurrentFOC torqueCurrent = new TorqueCurrentFOC(0);
@@ -68,6 +69,7 @@ public class MotorIOTalonFX extends MotorIO {
     private enum ControlType {
         COAST,
         BRAKE,
+        NEUTRAL,
         DUTY_CYCLE,
         VOLTAGE,
         TORQUE_CURRENT,
@@ -82,7 +84,7 @@ public class MotorIOTalonFX extends MotorIO {
         FOLLOW
     }
 
-    private ControlType currentControl = ControlType.BRAKE;
+    private ControlType currentControl = ControlType.NEUTRAL;
 
     // Feedforward lambda
     private Supplier<Double> feedforward;
@@ -121,11 +123,7 @@ public class MotorIOTalonFX extends MotorIO {
         }
 
         if (disabled) {
-            if(coastOnNeutral){
-                currentControl=ControlType.COAST;
-            }else{
-                currentControl=ControlType.BRAKE;
-            }
+            currentControl=ControlType.NEUTRAL;
         }
 
         // Update all input values from the motor signals
@@ -146,7 +144,7 @@ public class MotorIOTalonFX extends MotorIO {
         double setpoint =
                 Units.rotationsToRadians(motor.getClosedLoopReference().getValueAsDouble());
         switch (currentControl) {
-            case COAST, BRAKE, FOLLOW, VOLTAGE, DUTY_CYCLE, TORQUE_CURRENT:
+            case COAST, BRAKE, NEUTRAL, FOLLOW, VOLTAGE, DUTY_CYCLE, TORQUE_CURRENT:
                 inputs.setpoint = 0;
                 break;
             case VEL_CURRENT, VEL_VOLTAGE, MM_VEL_CURRENT, MM_VEL_VOLTAGE:
@@ -198,6 +196,13 @@ public class MotorIOTalonFX extends MotorIO {
             case COAST:
                 motor.setControl(coast);
                 break;
+            case NEUTRAL:
+                if(brakeOnNeutral){
+                    motor.setControl(brake);
+                }else{
+                    motor.setControl(coast);
+                }
+                break;
             case VOLTAGE:
                 motor.setControl(voltage);
                 break;
@@ -235,6 +240,21 @@ public class MotorIOTalonFX extends MotorIO {
                 motor.setControl(follow);
                 break;
         }
+    }
+
+    @Override
+    public void brake(){
+        currentControl = ControlType.BRAKE;
+    }
+
+    @Override
+    public void coast(){
+        currentControl=ControlType.COAST;
+    }
+
+    @Override
+    public void neutral(){
+        currentControl=ControlType.NEUTRAL;
     }
 
     // Tell the motor how fast to spin (percent, -1 = full reverse, 1 = full forward)
@@ -342,7 +362,7 @@ public class MotorIOTalonFX extends MotorIO {
     // Tell the motor what to do when stopped: brake (hold) or coast (freewheel)
     @Override
     public void setBraking(boolean brake) {
-        coastOnNeutral=!brake;
+        brakeOnNeutral = brake;
     }
 
     // Make PID and feedforward values active (converting from rotations-based to radians-based where needed)
@@ -461,6 +481,15 @@ public class MotorIOTalonFX extends MotorIO {
     public void setFeedforwardType(GravityTypeValue type) {
         if (type != config.Slot0.GravityType) {
             config.Slot0.GravityType = type;
+            configChanged = true;
+        }
+    }
+
+    // Tell the controller which gravity model to use (Arm_Cosine or Elevator_Static)
+    @Override
+    public void setStaticFeedforwardType(StaticFeedforwardSignValue type) {
+        if (type != config.Slot0.StaticFeedforwardSign) {
+            config.Slot0.StaticFeedforwardSign=type;
             configChanged = true;
         }
     }

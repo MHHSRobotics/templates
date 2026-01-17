@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.signals.GravityTypeValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
 import org.littletonrobotics.junction.AutoLog;
 import org.littletonrobotics.junction.Logger;
@@ -171,6 +172,26 @@ public class MotorIO {
         unsupportedFeature();
     }
 
+    // Disable motor without locking
+    public void coast(){
+        unsupportedFeature();
+    }
+
+    // Disable motor with locking
+    public void brake(){
+        unsupportedFeature();
+    }
+
+    // Disable motor with locking or not depending on coastOnNeutral
+    public void neutral(){
+        unsupportedFeature();
+    }
+
+    // Sets whether the motor should brake on neutral
+    public void setBraking(boolean braking){
+        unsupportedFeature();
+    }
+
     // Make this motor follow another motor with the given CAN ID (invert if needed)
     public void follow(int motorId, boolean invert) {
         unsupportedFeature();
@@ -178,11 +199,6 @@ public class MotorIO {
 
     // Tell the motor which direction is forward (true = invert)
     public void setInverted(boolean inverted) {
-        unsupportedFeature();
-    }
-
-    // Tell the motor what to do when stopped: brake (hold) or coast (freewheel)
-    public void setBraking(boolean braking) {
         unsupportedFeature();
     }
 
@@ -251,6 +267,10 @@ public class MotorIO {
         unsupportedFeature();
     }
 
+    public void setStaticFeedforwardType(StaticFeedforwardSignValue type){
+        unsupportedFeature();
+    }
+
     // Tell the motor to use a remote encoder with given gear ratio (unitless). Make sure to set encoder settings before
     // calling this.
     public void connectEncoder(EncoderIO encoder, double motorToSensorRatio, boolean fuse) {
@@ -304,7 +324,7 @@ public class MotorIO {
         unsupportedFeature();
     }
 
-    // Tell the motor to be disabled or enabled
+    // Tell the motor to be disabled or enabled. Disabled = neutral whether or not any methods are called.
     public void setDisabled(boolean disabled) {
         unsupportedFeature();
     }
