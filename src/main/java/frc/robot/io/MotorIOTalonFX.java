@@ -16,9 +16,9 @@ import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
-import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.StaticBrake;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -28,7 +28,6 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import frc.robot.Constants;
@@ -44,12 +43,15 @@ public class MotorIOTalonFX extends MotorIO {
     private TalonFX motor;
     private TalonFXConfiguration config = new TalonFXConfiguration();
     private boolean configChanged = true;
+    private boolean coastOnNeutral = false;
+    private boolean disabled = false;
 
     private TalonFXSimState sim;
 
     // Control objects (one per control mode)
-    private NeutralOut neutral = new NeutralOut();
     private CoastOut coast = new CoastOut();
+    private StaticBrake brake = new StaticBrake();
+    
     private DutyCycleOut dutyCycle = new DutyCycleOut(0);
     private VoltageOut voltage = new VoltageOut(0);
     private TorqueCurrentFOC torqueCurrent = new TorqueCurrentFOC(0);
@@ -64,8 +66,8 @@ public class MotorIOTalonFX extends MotorIO {
     private Follower follow = new Follower(0, MotorAlignmentValue.Aligned);
 
     private enum ControlType {
-        NEUTRAL,
         COAST,
+        BRAKE,
         DUTY_CYCLE,
         VOLTAGE,
         TORQUE_CURRENT,
@@ -80,13 +82,10 @@ public class MotorIOTalonFX extends MotorIO {
         FOLLOW
     }
 
-    private ControlType currentControl = ControlType.NEUTRAL;
+    private ControlType currentControl = ControlType.BRAKE;
 
     // Feedforward lambda
     private Supplier<Double> feedforward;
-
-    // Whether the motor is disabled
-    private boolean disabled = false;
 
     // Software offset in mechanism radians
     private double extraOffset;
@@ -122,7 +121,11 @@ public class MotorIOTalonFX extends MotorIO {
         }
 
         if (disabled) {
-            currentControl = ControlType.NEUTRAL;
+            if(coastOnNeutral){
+                currentControl=ControlType.COAST;
+            }else{
+                currentControl=ControlType.BRAKE;
+            }
         }
 
         // Update all input values from the motor signals
@@ -143,7 +146,7 @@ public class MotorIOTalonFX extends MotorIO {
         double setpoint =
                 Units.rotationsToRadians(motor.getClosedLoopReference().getValueAsDouble());
         switch (currentControl) {
-            case COAST, NEUTRAL, FOLLOW, VOLTAGE, DUTY_CYCLE, TORQUE_CURRENT:
+            case COAST, BRAKE, FOLLOW, VOLTAGE, DUTY_CYCLE, TORQUE_CURRENT:
                 inputs.setpoint = 0;
                 break;
             case VEL_CURRENT, VEL_VOLTAGE, MM_VEL_CURRENT, MM_VEL_VOLTAGE:
@@ -189,8 +192,8 @@ public class MotorIOTalonFX extends MotorIO {
 
         // Set motor control
         switch (currentControl) {
-            case NEUTRAL:
-                motor.setControl(neutral);
+            case BRAKE:
+                motor.setControl(brake);
                 break;
             case COAST:
                 motor.setControl(coast);
@@ -339,11 +342,7 @@ public class MotorIOTalonFX extends MotorIO {
     // Tell the motor what to do when stopped: brake (hold) or coast (freewheel)
     @Override
     public void setBraking(boolean brake) {
-        NeutralModeValue newNeutralMode = brake ? NeutralModeValue.Brake : NeutralModeValue.Coast;
-        if (newNeutralMode != config.MotorOutput.NeutralMode) {
-            config.MotorOutput.NeutralMode = newNeutralMode;
-            configChanged = true;
-        }
+        coastOnNeutral=!brake;
     }
 
     // Make PID and feedforward values active (converting from rotations-based to radians-based where needed)
