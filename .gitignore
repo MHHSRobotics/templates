@@ -189,5 +189,5 @@ compile_commands.json
 # BuildConstants
 **/BuildConstants.java
 
-
+.claude/
 

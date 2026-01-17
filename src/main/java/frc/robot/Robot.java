@@ -41,6 +41,7 @@ public class Robot extends LoggedRobot {
     private final Alert lowBatteryAlert = new Alert("Battery charge is low, replace it soon", AlertType.kWarning);
 
     public Robot() {
+        super(Constants.loopTime);
         // Add the project metadata to the logs so we can identify which version of the code created a specific log file
         Logger.recordMetadata("Name", BuildConstants.MAVEN_NAME);
         Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);

@@ -123,7 +123,7 @@ public class MotorIOTalonFX extends MotorIO {
         }
 
         if (disabled) {
-            currentControl=ControlType.NEUTRAL;
+            currentControl = ControlType.NEUTRAL;
         }
 
         // Update all input values from the motor signals
@@ -197,9 +197,9 @@ public class MotorIOTalonFX extends MotorIO {
                 motor.setControl(coast);
                 break;
             case NEUTRAL:
-                if(brakeOnNeutral){
+                if (brakeOnNeutral) {
                     motor.setControl(brake);
-                }else{
+                } else {
                     motor.setControl(coast);
                 }
                 break;
@@ -243,18 +243,18 @@ public class MotorIOTalonFX extends MotorIO {
     }
 
     @Override
-    public void brake(){
+    public void brake() {
         currentControl = ControlType.BRAKE;
     }
 
     @Override
-    public void coast(){
-        currentControl=ControlType.COAST;
+    public void coast() {
+        currentControl = ControlType.COAST;
     }
 
     @Override
-    public void neutral(){
-        currentControl=ControlType.NEUTRAL;
+    public void neutral() {
+        currentControl = ControlType.NEUTRAL;
     }
 
     // Tell the motor how fast to spin (percent, -1 = full reverse, 1 = full forward)
@@ -489,7 +489,7 @@ public class MotorIOTalonFX extends MotorIO {
     @Override
     public void setStaticFeedforwardType(StaticFeedforwardSignValue type) {
         if (type != config.Slot0.StaticFeedforwardSign) {
-            config.Slot0.StaticFeedforwardSign=type;
+            config.Slot0.StaticFeedforwardSign = type;
             configChanged = true;
         }
     }

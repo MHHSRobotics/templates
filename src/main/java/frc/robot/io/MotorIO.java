@@ -173,22 +173,22 @@ public class MotorIO {
     }
 
     // Disable motor without locking
-    public void coast(){
+    public void coast() {
         unsupportedFeature();
     }
 
     // Disable motor with locking
-    public void brake(){
+    public void brake() {
         unsupportedFeature();
     }
 
     // Disable motor with locking or not depending on coastOnNeutral
-    public void neutral(){
+    public void neutral() {
         unsupportedFeature();
     }
 
     // Sets whether the motor should brake on neutral
-    public void setBraking(boolean braking){
+    public void setBraking(boolean braking) {
         unsupportedFeature();
     }
 
@@ -267,7 +267,7 @@ public class MotorIO {
         unsupportedFeature();
     }
 
-    public void setStaticFeedforwardType(StaticFeedforwardSignValue type){
+    public void setStaticFeedforwardType(StaticFeedforwardSignValue type) {
         unsupportedFeature();
     }
 

@@ -25,6 +25,9 @@ public final class Constants {
         PHYSICS_SIM,
     }
 
+    // Period of main robot loop
+    public static final double loopTime=0.02;
+
     public static final CANBus defaultBus = new CANBus("rio");
     public static final CANBus swerveBus = new CANBus("rhino");
 

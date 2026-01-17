@@ -4,11 +4,13 @@ import java.util.function.Supplier;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
+
 import com.revrobotics.PersistMode;
 import com.revrobotics.REVLibError;
 import com.revrobotics.ResetMode;
@@ -19,8 +21,6 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-
-import edu.wpi.first.math.system.plant.DCMotor;
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import frc.robot.util.Alerts;
@@ -150,7 +150,7 @@ public class MotorIOSparkMax extends MotorIO {
         }
 
         // Estimate acceleration from velocity change (SparkMax doesn't provide it directly)
-        inputs.accel = (inputs.velocity - prevVelocity) / 0.02; // Assuming 20ms loop
+        inputs.accel = (inputs.velocity - prevVelocity) / Constants.loopTime;
         prevVelocity = inputs.velocity;
 
         inputs.appliedVoltage = motor.getAppliedOutput() * motor.getBusVoltage();
@@ -168,22 +168,22 @@ public class MotorIOSparkMax extends MotorIO {
         double currentFeedforward = feedforward == null ? 0 : feedforward.get();
         inputs.feedforward = currentFeedforward;
 
-        switch(currentControl){
+        switch (currentControl) {
             case POSITION:
-            inputs.derivOutput = positionPID.getD();
-            inputs.intOutput = positionPID.getI();
-            inputs.propOutput = positionPID.getP();
-            break;
+                inputs.derivOutput = positionPID.getD();
+                inputs.intOutput = positionPID.getI();
+                inputs.propOutput = positionPID.getP();
+                break;
             case VELOCITY:
-            inputs.derivOutput = velocityPID.getD();
-            inputs.intOutput = velocityPID.getI();
-            inputs.propOutput = velocityPID.getP();
-            break;
+                inputs.derivOutput = velocityPID.getD();
+                inputs.intOutput = velocityPID.getI();
+                inputs.propOutput = velocityPID.getP();
+                break;
             default:
-            inputs.derivOutput = 0;
-            inputs.intOutput = 0;
-            inputs.propOutput = 0;
-            break;
+                inputs.derivOutput = 0;
+                inputs.intOutput = 0;
+                inputs.propOutput = 0;
+                break;
         }
 
         inputs.temp = motor.getMotorTemperature();
@@ -226,32 +226,33 @@ public class MotorIOSparkMax extends MotorIO {
             case POSITION:
                 double posPID = positionPID.calculate(inputs.position, setpointValue);
                 // Calculate gravity feedforward based on type
-                double gravityFF = switch (gravityType) {
-                    case Arm_Cosine -> kG * Math.cos(inputs.position);
-                    case Elevator_Static -> kG;
-                };
+                double gravityFF =
+                        switch (gravityType) {
+                            case Arm_Cosine -> kG * Math.cos(inputs.position);
+                            case Elevator_Static -> kG;
+                        };
                 // Calculate kS sign based on static feedforward sign type
-                double posStaticSign = switch (staticFFSign) {
-                    case UseVelocitySign -> Math.signum(inputs.velocity);
-                    case UseClosedLoopSign -> Math.signum(posPID);
-                };
+                double posStaticSign =
+                        switch (staticFFSign) {
+                            case UseVelocitySign -> Math.signum(inputs.velocity);
+                            case UseClosedLoopSign -> Math.signum(posPID);
+                        };
                 double posFeedforward = currentFeedforward + kS * posStaticSign + gravityFF;
                 motor.setVoltage(posPID + posFeedforward);
                 break;
             case VELOCITY:
                 double velPID = velocityPID.calculate(inputs.velocity, setpointValue);
                 // Calculate desired acceleration from setpoint change
-                double desiredAccel = (setpointValue - prevVelocitySetpoint) / 0.02;
+                double desiredAccel = (setpointValue - prevVelocitySetpoint) / Constants.loopTime;
                 prevVelocitySetpoint = setpointValue;
                 // Calculate kS sign based on static feedforward sign type
-                double velStaticSign = switch (staticFFSign) {
-                    case UseVelocitySign -> Math.signum(setpointValue);
-                    case UseClosedLoopSign -> Math.signum(velPID);
-                };
-                double velFeedforward = currentFeedforward
-                        + kS * velStaticSign
-                        + kV * setpointValue
-                        + kA * desiredAccel;
+                double velStaticSign =
+                        switch (staticFFSign) {
+                            case UseVelocitySign -> Math.signum(setpointValue);
+                            case UseClosedLoopSign -> Math.signum(velPID);
+                        };
+                double velFeedforward =
+                        currentFeedforward + kS * velStaticSign + kV * setpointValue + kA * desiredAccel;
                 motor.setVoltage(velPID + velFeedforward);
                 break;
             case FOLLOW:
@@ -344,7 +345,7 @@ public class MotorIOSparkMax extends MotorIO {
 
     @Override
     public void setBraking(boolean braking) {
-        brakeOnNeutral=braking;
+        brakeOnNeutral = braking;
     }
 
     // PID gains - applied to WPILib PIDController (mechanism units: radians or meters)
