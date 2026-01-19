@@ -438,6 +438,7 @@ public class MotorIOTalonFX extends MotorIO {
         setkV(gains.kV);
         setkA(gains.kA);
         setFeedforwardType(gains.GravityType);
+        setStaticFeedforwardType(gains.StaticFeedforwardSign);
     }
 
     @Override

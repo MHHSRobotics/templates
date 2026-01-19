@@ -137,7 +137,7 @@ public class MotorIOSparkMax extends MotorIO {
         double rawPosition = motor.getEncoder().getPosition(); // rotations
         double rawVelocity = motor.getEncoder().getVelocity(); // RPM
         double motorPosition = Units.rotationsToRadians(rawPosition / gearRatio) - offset;
-        double motorVelocity = Units.rotationsToRadians(rawVelocity / 60.0 / gearRatio); // RPM to rad/s
+        double motorVelocity = Units.rotationsPerMinuteToRadiansPerSecond(rawVelocity); // RPM to rad/s
 
         // Use connected encoder for feedback if available, otherwise use motor encoder
         if (connectedEncoder != null) {
@@ -414,12 +414,20 @@ public class MotorIOSparkMax extends MotorIO {
     }
 
     // Tell the motor to use an external encoder for PID feedback
-    // motorToSensorRatio: motor rotations per encoder rotation (for tracking, encoder handles its own gear ratio)
-    // fuse parameter is ignored for SparkMax (no hardware fusion like TalonFX)
+    // motorToSensorRatio: motor rotations per encoder rotation (used for encoderDiff calculation)
+    // fuse parameter is not supported on SparkMax (no hardware fusion like TalonFX)
     @Override
     public void connectEncoder(EncoderIO encoder, double motorToSensorRatio, boolean fuse) {
+        if (fuse) {
+            Alerts.create(
+                    "SparkMax " + getName() + " does not support encoder fusion - using encoder for PID only",
+                    AlertType.kWarning);
+        }
         this.connectedEncoder = encoder;
         this.motorToSensorRatio = motorToSensorRatio;
+        // Set gearRatio to match motorToSensorRatio for correct encoderDiff calculation
+        // (assumes encoder is 1:1 with mechanism, which is typical for absolute encoders on output shaft)
+        this.gearRatio = motorToSensorRatio;
     }
 
     @Override
