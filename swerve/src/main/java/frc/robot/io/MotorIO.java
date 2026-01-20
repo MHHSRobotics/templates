@@ -49,13 +49,17 @@ public class MotorIO {
 
         public double dutyCycle; // Duty cycle command (-1 to 1)
 
-        public double encoderDiff;
+        public double encoderDiff; // Difference between encoder and motor measurements, for sync visualization
 
+        // Whether the mechanism has hit the forward or reverse limits (defined in software/hardware)
+        public boolean hitForwardLimit;
+        public boolean hitReverseLimit;
+
+        // Faults
         public boolean hardwareFault;
         public boolean tempFault;
-        public boolean forwardLimitFault;
-        public boolean reverseLimitFault;
 
+        // Position of the rotor without taking into account connected encoders
         public double rawRotorPosition;
     }
 
@@ -98,8 +102,8 @@ public class MotorIO {
         disconnectAlert.set(!inputs.connected);
         hardwareFaultAlert.set(inputs.hardwareFault);
         tempFaultAlert.set(inputs.tempFault);
-        forwardLimitAlert.set(inputs.forwardLimitFault);
-        reverseLimitAlert.set(inputs.reverseLimitFault);
+        forwardLimitAlert.set(inputs.hitForwardLimit);
+        reverseLimitAlert.set(inputs.hitReverseLimit);
     }
 
     private void unsupportedFeature() {
@@ -239,6 +243,16 @@ public class MotorIO {
 
     // Make a full Slot0 gains config active
     public void setGains(Slot0Configs gains) {
+        unsupportedFeature();
+    }
+
+    // Connects a forward hardware limit switch
+    public void connectForwardLimitSwitch(int id) {
+        unsupportedFeature();
+    }
+
+    // Connects a forward hardware limit switch
+    public void connectReverseLimitSwitch(int id) {
         unsupportedFeature();
     }
 

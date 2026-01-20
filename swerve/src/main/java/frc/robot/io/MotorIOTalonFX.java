@@ -25,9 +25,11 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.ForwardLimitSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.ReverseLimitSourceValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
@@ -167,12 +169,13 @@ public class MotorIOTalonFX extends MotorIO {
         inputs.temp = motor.getDeviceTemp().getValueAsDouble();
         inputs.dutyCycle = motor.getDutyCycle().getValueAsDouble();
 
+        inputs.hitForwardLimit = motor.getFault_ForwardHardLimit().getValue()
+                || motor.getFault_ForwardSoftLimit().getValue();
+        inputs.hitReverseLimit = motor.getFault_ReverseHardLimit().getValue()
+                || motor.getFault_ReverseSoftLimit().getValue();
+
         inputs.hardwareFault = motor.getFault_Hardware().getValue();
         inputs.tempFault = motor.getFault_DeviceTemp().getValue();
-        inputs.forwardLimitFault = motor.getFault_ForwardHardLimit().getValue()
-                || motor.getFault_ForwardSoftLimit().getValue();
-        inputs.reverseLimitFault = motor.getFault_ReverseHardLimit().getValue()
-                || motor.getFault_ReverseSoftLimit().getValue();
 
         inputs.rawRotorPosition =
                 Units.rotationsToRadians(motor.getRotorPosition().getValueAsDouble()
@@ -439,6 +442,20 @@ public class MotorIOTalonFX extends MotorIO {
         setkA(gains.kA);
         setFeedforwardType(gains.GravityType);
         setStaticFeedforwardType(gains.StaticFeedforwardSign);
+    }
+
+    @Override
+    public void connectForwardLimitSwitch(int id) {
+        config.HardwareLimitSwitch.ForwardLimitSource = ForwardLimitSourceValue.LimitSwitchPin;
+        config.HardwareLimitSwitch.ForwardLimitEnable = true;
+        config.HardwareLimitSwitch.ForwardLimitRemoteSensorID = id;
+    }
+
+    @Override
+    public void connectReverseLimitSwitch(int id) {
+        config.HardwareLimitSwitch.ReverseLimitSource = ReverseLimitSourceValue.LimitSwitchPin;
+        config.HardwareLimitSwitch.ReverseLimitEnable = true;
+        config.HardwareLimitSwitch.ReverseLimitRemoteSensorID = id;
     }
 
     @Override

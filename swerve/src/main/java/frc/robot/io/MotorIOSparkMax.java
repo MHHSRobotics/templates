@@ -189,10 +189,11 @@ public class MotorIOSparkMax extends MotorIO {
         inputs.temp = motor.getMotorTemperature();
         inputs.dutyCycle = motor.getAppliedOutput();
 
+        inputs.hitForwardLimit = motor.getForwardSoftLimit().isReached();
+        inputs.hitReverseLimit = motor.getReverseSoftLimit().isReached();
+
         inputs.hardwareFault = faults.motorType || faults.gateDriver || faults.escEeprom || faults.firmware;
         inputs.tempFault = faults.temperature;
-        inputs.forwardLimitFault = motor.getForwardSoftLimit().isReached();
-        inputs.reverseLimitFault = motor.getReverseSoftLimit().isReached();
 
         inputs.rawRotorPosition = Units.rotationsToRadians(rawPosition);
 
