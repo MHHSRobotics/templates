@@ -8,7 +8,6 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.CoastOut;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -24,15 +23,14 @@ import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.TalonFXS;
+import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.sim.TalonFXSSimState;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
@@ -101,19 +99,19 @@ public class MotorIOTalonFXS extends MotorIO {
     private double minLimit = -Double.MAX_VALUE;
     private double maxLimit = Double.MAX_VALUE;
 
-    // Make a TalonFX on the given CAN bus
+    // Make a TalonFXS on the given CAN bus
     public MotorIOTalonFXS(int id, CANBus canBus, String name, String logPath) {
         super(name, logPath);
         motor = new TalonFXS(id, canBus);
         sim = motor.getSimState();
     }
 
-    // Make a TalonFX on a named CAN bus (e.g., "rio", "canivore")
+    // Make a TalonFXS on a named CAN bus (e.g., "rio", "canivore")
     public MotorIOTalonFXS(int id, String canBus, String name, String logPath) {
         this(id, new CANBus(canBus), name, logPath);
     }
 
-    // Make a TalonFX on the default CAN bus
+    // Make a TalonFXS on the default CAN bus
     public MotorIOTalonFXS(int id, String name, String logPath) {
         this(id, new CANBus(), name, logPath);
     }
@@ -439,6 +437,7 @@ public class MotorIOTalonFXS extends MotorIO {
         setkV(gains.kV);
         setkA(gains.kA);
         setFeedforwardType(gains.GravityType);
+        setStaticFeedforwardType(gains.StaticFeedforwardSign);
     }
 
     @Override
@@ -492,6 +491,44 @@ public class MotorIOTalonFXS extends MotorIO {
         if (type != config.Slot0.StaticFeedforwardSign) {
             config.Slot0.StaticFeedforwardSign = type;
             configChanged = true;
+        }
+    }
+
+    // Tell the motor to use a remote encoder with gear ratios:
+    // - motorToSensorRatio: motor rotations to sensor rotations (unitless)
+    // - fuse: Whether to use the internal rotor along with the CANcoder. Always set to true, unless there are issues
+    // with the reported position teleporting even after accounting for gear ratio and inversion, in which case it
+    // should be false
+    // Only use ONE of connectEncoder OR setGearRatio for a motor, not both.
+    // Currently only supports CANcoders.
+    @Override
+    public void connectEncoder(EncoderIO encoder, double motorToSensorRatio, boolean fuse) {
+        if (encoder instanceof EncoderIOCANcoder cancoder) {
+            config.ExternalFeedback.FeedbackRemoteSensorID = cancoder.getId();
+            config.ExternalFeedback.ExternalFeedbackSensorSource = fuse
+                    ? ExternalFeedbackSensorSourceValue.FusedCANcoder
+                    : ExternalFeedbackSensorSourceValue.RemoteCANcoder;
+            config.ExternalFeedback.RotorToSensorRatio = motorToSensorRatio;
+            config.ExternalFeedback.SensorToMechanismRatio = cancoder.getRatio();
+            connectedEncoder = cancoder;
+            configChanged = true;
+        } else {
+            Alerts.create(
+                    "TalonFXS " + getName() + " doesn't support feedback sources other than CANcoders",
+                    AlertType.kError);
+        }
+    }
+
+    // Use after connectEncoder/setGearRatio. Sets the mechanism offset.
+    @Override
+    public void setOffset(double offset) {
+        if (config.ExternalFeedback.ExternalFeedbackSensorSource == ExternalFeedbackSensorSourceValue.FusedCANcoder
+                || config.ExternalFeedback.ExternalFeedbackSensorSource
+                        == ExternalFeedbackSensorSourceValue.RemoteCANcoder) {
+            connectedEncoder.setOffset(offset);
+            extraOffset = connectedEncoder.getExtraOffset();
+        } else {
+            Alerts.create("Invalid sensor source for TalonFXS " + getName(), AlertType.kError);
         }
     }
 
@@ -552,5 +589,30 @@ public class MotorIOTalonFXS extends MotorIO {
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    // We apply invert after adding offset because invert is applied before offset in the position reading code
+    @Override
+    public void setMechPosition(double position) {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method setMechPosition on " + getName(), AlertType.kWarning);
+            return;
+        }
+        double rotorPos = Units.radiansToRotations(
+                (position + extraOffset) * config.ExternalFeedback.RotorToSensorRatio * config.ExternalFeedback.SensorToMechanismRatio);
+        rotorPos = config.MotorOutput.Inverted.equals(InvertedValue.Clockwise_Positive) ? -rotorPos : rotorPos;
+        sim.setRawRotorPosition(rotorPos);
+    }
+
+    @Override
+    public void setMechVelocity(double velocity) {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method setMechVelocity on " + getName(), AlertType.kWarning);
+            return;
+        }
+        double rotorVel = Units.radiansToRotations(
+                velocity * config.ExternalFeedback.RotorToSensorRatio * config.ExternalFeedback.SensorToMechanismRatio);
+        rotorVel = config.MotorOutput.Inverted.equals(InvertedValue.Clockwise_Positive) ? -rotorVel : rotorVel;
+        sim.setRotorVelocity(rotorVel);
     }
 }

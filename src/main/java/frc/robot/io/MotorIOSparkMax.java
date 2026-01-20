@@ -70,7 +70,6 @@ public class MotorIOSparkMax extends MotorIO {
 
     // Connected external encoder (null = use motor's built-in encoder)
     private EncoderIO connectedEncoder;
-    private double motorToSensorRatio = 1.0;
 
     // Soft limits
     private double minLimit = -Double.MAX_VALUE;
@@ -105,7 +104,8 @@ public class MotorIOSparkMax extends MotorIO {
         motor = new SparkMax(id, motorType);
 
         // Initialize simulation objects when not running on real hardware
-        // Uses a default NEO motor model - actual physics are handled externally (e.g., in subsystem sim)
+        // Uses a default NEO motor model so we get encoder sim access - actual physics are handled externally (e.g., in
+        // subsystem sim)
         if (Constants.currentMode != Mode.REAL) {
             sim = new SparkMaxSim(motor, DCMotor.getNEO(1));
             encoderSim = sim.getRelativeEncoderSim();
@@ -161,7 +161,7 @@ public class MotorIOSparkMax extends MotorIO {
         inputs.controlMode = currentControl.name();
 
         inputs.setpoint = setpointValue;
-        inputs.setpointVelocity = 0; // Not available for simple PID
+        inputs.setpointVelocity = 0; // MotionMagic only, isn't implemented here
         inputs.error = inputs.setpoint - inputs.position;
 
         // Calculate current feedforward value
@@ -424,9 +424,7 @@ public class MotorIOSparkMax extends MotorIO {
                     AlertType.kWarning);
         }
         this.connectedEncoder = encoder;
-        this.motorToSensorRatio = motorToSensorRatio;
-        // Set gearRatio to match motorToSensorRatio for correct encoderDiff calculation
-        // (assumes encoder is 1:1 with mechanism, which is typical for absolute encoders on output shaft)
+
         this.gearRatio = motorToSensorRatio;
     }
 
@@ -503,7 +501,7 @@ public class MotorIOSparkMax extends MotorIO {
         }
         if (encoderSim != null) {
             // Convert mechanism velocity (rad/s) to motor RPM
-            double motorRPM = Units.radiansToRotations(velocity) * gearRatio * 60.0;
+            double motorRPM = Units.radiansPerSecondToRotationsPerMinute(velocity) * gearRatio;
             // Apply inversion
             motorRPM = inverted ? -motorRPM : motorRPM;
             encoderSim.setVelocity(motorRPM);
