@@ -21,9 +21,11 @@ public final class Constants {
         PHYSICS_SIM,
     }
 
-    public static final Mode simMode = Mode.SIM; // Default simulation mode, should be SIM for regular simulation and REPLAY for replays.
+    public static final Mode simMode =
+            Mode.SIM; // Default simulation mode, should be SIM for regular simulation and REPLAY for replays.
 
-    public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode; // Current mode the robot program is in
+    public static final Mode currentMode =
+            RobotBase.isReal() ? Mode.REAL : simMode; // Current mode the robot program is in
 
     public static final double loopTime = 0.02; // Period of main robot loop, 20ms default
 
@@ -31,7 +33,8 @@ public final class Constants {
 
     public static final CANBus swerveBus = new CANBus("rhino"); // CAN bus used for swerve motors
 
-    public static final double loopOverrunWarningTimeout = 0.2; // Amount of time a robot tick can take before reporting a warning to DS
+    public static final double loopOverrunWarningTimeout =
+            0.2; // Amount of time a robot tick can take before reporting a warning to DS
 
     public static final double brownoutVoltage = 6.0; // Voltage at which brownout protection occurs
 

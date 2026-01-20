@@ -16,5 +16,6 @@ public class Field {
 
     public static final FieldSymmetry symm = FieldSymmetry.C2;
 
-    public static AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField); // Get the april tag field layout for the current season
+    public static AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(
+            AprilTagFields.kDefaultField); // Get the april tag field layout for the current season
 }

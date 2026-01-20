@@ -4,7 +4,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.io.GyroIO;
 
-// Simple gyro sim that disconnects the gyro so odometry is used in sim
+// Gyro sim does NOTHING because swerve replaces gyro with odometry when it's disconnected
 public class GyroSim extends SubsystemBase {
     private GyroIO gyro;
 

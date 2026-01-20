@@ -34,7 +34,6 @@ public class SwerveModule {
         angleEncoder = angleEncoderIO;
 
         driveMotor.setBraking(true);
-        driveMotor.setGains(constants.DriveMotorGains);
         driveMotor.setGearRatio(constants.DriveMotorGearRatio);
         driveMotor.setStatorCurrentLimit(constants.SlipCurrent);
         driveMotor.setInverted(constants.DriveMotorInverted);
@@ -42,7 +41,6 @@ public class SwerveModule {
         angleEncoder.setInverted(constants.EncoderInverted);
 
         angleMotor.setBraking(true);
-        angleMotor.setGains(constants.SteerMotorGains);
         angleMotor.connectEncoder(angleEncoder, constants.SteerMotorGearRatio);
         angleMotor.setContinuousWrap(true);
         angleMotor.setInverted(constants.SteerMotorInverted);
@@ -166,7 +164,7 @@ public class SwerveModule {
         return new SwerveModuleState(getTargetVelocity(), Rotation2d.fromRadians(getTargetAngle()));
     }
 
-    // This runs every robot loop (about 50 times per second) to update sensors and check for problems
+    // This runs every robot loop to update sensors and check for problems
     public void periodic() {
         // All updates handle logging and alerts automatically
         driveMotor.update();
@@ -174,17 +172,17 @@ public class SwerveModule {
         angleEncoder.update();
 
         // Update gains
-        driveMotor.setkP(Swerve.Constants.drivekP.get());
-        driveMotor.setkD(Swerve.Constants.drivekD.get());
-        driveMotor.setkS(Swerve.Constants.drivekS.get());
-        driveMotor.setkV(Swerve.Constants.drivekV.get());
-        driveMotor.setkA(Swerve.Constants.drivekA.get());
+        driveMotor.setkP(Swerve.Constants.driveKP.get());
+        driveMotor.setkD(Swerve.Constants.driveKD.get());
+        driveMotor.setkS(Swerve.Constants.driveKS.get());
+        driveMotor.setkV(Swerve.Constants.driveKV.get());
+        driveMotor.setkA(Swerve.Constants.driveKA.get());
 
-        angleMotor.setkP(Swerve.Constants.steerkP.get());
-        angleMotor.setkD(Swerve.Constants.steerkD.get());
-        angleMotor.setkS(Swerve.Constants.steerkS.get());
-        angleMotor.setkV(Swerve.Constants.steerkV.get());
-        angleMotor.setkA(Swerve.Constants.steerkA.get());
+        angleMotor.setkP(Swerve.Constants.steerKP.get());
+        angleMotor.setkD(Swerve.Constants.steerKD.get());
+        angleMotor.setkS(Swerve.Constants.steerKS.get());
+        angleMotor.setkV(Swerve.Constants.steerKV.get());
+        angleMotor.setkA(Swerve.Constants.steerKA.get());
 
         // Update last position
         lastPosition = currentPosition;

@@ -37,15 +37,18 @@ public class RobotContainer {
 
     // Subsystem commands
     private SwerveCommands swerveCommands;
-    
-    private final CommandPS5Controller controller = new CommandPS5Controller(0); // Main drive controller
-    
-    private final CommandPS5Controller manualController = new CommandPS5Controller(1); // Manual controller for subsystems, for continuous change in PID goal
 
-    private final CommandPS5Controller testController = new CommandPS5Controller(2); // Test controller for controlling one subsystem at a time, for full manual and PID movements
+    private final CommandPS5Controller controller = new CommandPS5Controller(0); // Main drive controller
+
+    private final CommandPS5Controller manualController =
+            new CommandPS5Controller(1); // Manual controller for subsystems, for continuous change in PID goal
+
+    private final CommandPS5Controller testController = new CommandPS5Controller(
+            2); // Test controller for controlling one subsystem at a time, for full manual and PID movements
 
     private LoggedDashboardChooser<String> testControllerChooser; // Which subsystem the test controller is applied to
-    private LoggedDashboardChooser<String> testControllerManual; // Whether to use manual or PID mode for the test controller
+    private LoggedDashboardChooser<String>
+            testControllerManual; // Whether to use manual or PID mode for the test controller
 
     private LoggedDashboardChooser<String> autoChooser; // Choice of auto
 
@@ -59,7 +62,6 @@ public class RobotContainer {
         initSubsystems(); // Initialize all the IO objects, subsystems, and mechanism simulators
         initCommands(); // Initialize command classes
 
-        
         configureBindings(); // Add drive controller bindings
 
         configureManualBindings(); // Configure bindings for manual controller
@@ -83,7 +85,8 @@ public class RobotContainer {
             EncoderIO flEncoder, frEncoder, blEncoder, brEncoder;
             GyroIO gyro;
             switch (Constants.currentMode) {
-                // If in REAL or SIM mode, use MotorIOTalonFX for motors, EncoderIOCANcoder for encoders, and GyroIOPigeon for the gyro
+                // If in REAL or SIM mode, use MotorIOTalonFX for motors, EncoderIOCANcoder for encoders, and
+                // GyroIOPigeon for the gyro
                 case REAL:
                 case SIM:
                     flDriveMotor = new MotorIOTalonFX(
@@ -222,7 +225,7 @@ public class RobotContainer {
     }
 
     private void initCommands() {
-        if(Constants.swerveEnabled){
+        if (Constants.swerveEnabled) {
             swerveCommands = new SwerveCommands(swerve);
         }
     }
@@ -236,10 +239,11 @@ public class RobotContainer {
          * Touchpad: cancel all commands
          */
 
-        if(Constants.swerveEnabled){
+        if (Constants.swerveEnabled) {
             controller.create().onTrue(swerveCommands.resetGyro());
 
-            CommandScheduler.getInstance().schedule(swerveCommands.drive(
+            CommandScheduler.getInstance()
+                    .schedule(swerveCommands.drive(
                             () -> -controller.getLeftY(),
                             () -> -controller.getLeftX(),
                             () -> -controller.getRightX(),
@@ -248,7 +252,6 @@ public class RobotContainer {
             controller.touchpad().onTrue(Commands.runOnce(() -> CommandScheduler.getInstance()
                     .cancelAll()));
         }
-        
     }
 
     private void configureTestBindings() {
@@ -267,7 +270,8 @@ public class RobotContainer {
         testControllerManual.addOption("Fast", "Fast");
 
         // Test controller swerve control for convenience
-        CommandScheduler.getInstance().schedule(swerveCommands.drive(
+        CommandScheduler.getInstance()
+                .schedule(swerveCommands.drive(
                         () -> -testController.getLeftY(),
                         () -> -testController.getLeftX(),
                         () -> -testController.getRightX(),
@@ -307,9 +311,7 @@ public class RobotContainer {
     }
 
     // Bindings for manual control of each of the subsystems (nothing here for swerve, add other subsystems)
-    public void configureManualBindings() {
-
-    }
+    public void configureManualBindings() {}
 
     // Refresh drive and manual controller disconnect alerts
     public void refreshControllerAlerts() {
