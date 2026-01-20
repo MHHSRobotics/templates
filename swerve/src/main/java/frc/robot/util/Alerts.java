@@ -24,6 +24,7 @@ public class Alerts {
         alerts.add(alert);
     }
 
+    // Create a permanent alert with the given text and AlertType (info, warning, or error)
     public static void create(String text, AlertType type) {
         getInstance().createAlert(text, type);
     }

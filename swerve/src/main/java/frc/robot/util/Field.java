@@ -5,8 +5,8 @@ import edu.wpi.first.apriltag.AprilTagFields;
 
 public class Field {
     // Field dimensions
-    public static final double fieldLength = 17.55;
-    public static final double fieldWidth = 8.05;
+    public static final double fieldLength = 16.54;
+    public static final double fieldWidth = 8.07;
 
     // Whether the field this season has rotational (C2) or reflected (D2) symmetry
     public enum FieldSymmetry {
@@ -16,8 +16,5 @@ public class Field {
 
     public static final FieldSymmetry symm = FieldSymmetry.C2;
 
-    // Get the april tag field layout for the current season
-    public static AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
-
-    public static double botRadius = 0.7366; // Distance from center of bot to edge of the bot (meters)
+    public static AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField); // Get the april tag field layout for the current season
 }

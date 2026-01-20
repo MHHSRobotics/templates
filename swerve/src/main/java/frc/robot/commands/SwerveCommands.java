@@ -61,6 +61,11 @@ public class SwerveCommands {
                             // Copy the sign of rotation to rotationScale to get the final rotation value
                             rotation = Math.copySign(rotationScale, rotation);
 
+                            // If there's zero input and auto align is running, don't stop it
+                            if(x==0 && y==0 && rotation==0 && (swerve.getPositionPIDSetting()||swerve.getRotationPIDSetting())){
+                                return;
+                            }
+                            
                             // Run the swerve drive with the given values of x, y, and rotation
                             swerve.setPositionOutput(
                                     x * Swerve.Constants.maxLinearSpeedMetersPerSec,
