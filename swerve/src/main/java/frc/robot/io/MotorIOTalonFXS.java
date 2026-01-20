@@ -25,7 +25,6 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -598,8 +597,9 @@ public class MotorIOTalonFXS extends MotorIO {
             Alerts.create("Used sim-only method setMechPosition on " + getName(), AlertType.kWarning);
             return;
         }
-        double rotorPos = Units.radiansToRotations(
-                (position + extraOffset) * config.ExternalFeedback.RotorToSensorRatio * config.ExternalFeedback.SensorToMechanismRatio);
+        double rotorPos = Units.radiansToRotations((position + extraOffset)
+                * config.ExternalFeedback.RotorToSensorRatio
+                * config.ExternalFeedback.SensorToMechanismRatio);
         rotorPos = config.MotorOutput.Inverted.equals(InvertedValue.Clockwise_Positive) ? -rotorPos : rotorPos;
         sim.setRawRotorPosition(rotorPos);
     }
