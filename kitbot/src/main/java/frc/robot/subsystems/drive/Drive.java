@@ -59,11 +59,11 @@ public class Drive extends SubsystemBase {
         public static final LoggedNetworkBoolean driveDisabled = new LoggedNetworkBoolean("Drive/Disabled", false);
 
         // Drive motor PID gains
-        public static final LoggedNetworkNumber driveKP = new LoggedNetworkNumber("Drive/KP", 0.1);
+        public static final LoggedNetworkNumber driveKP = new LoggedNetworkNumber("Drive/KP", 0);
         public static final LoggedNetworkNumber driveKI = new LoggedNetworkNumber("Drive/KI", 0);
         public static final LoggedNetworkNumber driveKD = new LoggedNetworkNumber("Drive/KD", 0);
         public static final LoggedNetworkNumber driveKS = new LoggedNetworkNumber("Drive/KS", 0);
-        public static final LoggedNetworkNumber driveKV = new LoggedNetworkNumber("Drive/KV", 0.12);
+        public static final LoggedNetworkNumber driveKV = new LoggedNetworkNumber("Drive/KV", 0.2);
         public static final LoggedNetworkNumber driveKA = new LoggedNetworkNumber("Drive/KA", 0);
 
         // Motor CAN IDs
@@ -95,9 +95,9 @@ public class Drive extends SubsystemBase {
     private double prevLeftPositionMeters = 0;
     private double prevRightPositionMeters = 0;
 
-    // Target speeds for arcade/tank drive
-    private double targetLeftSpeed = 0;
-    private double targetRightSpeed = 0;
+    // Target speeds for arcade/tank drive (m/s)
+    private double targetLeftSpeed = 0; // m/s
+    private double targetRightSpeed = 0; // m/s
 
     // For Elastic/Glass visualization
     private Field2d field = new Field2d();
@@ -175,24 +175,28 @@ public class Drive extends SubsystemBase {
         rightBackMotor.setBraking(true);
     }
 
-    // Get left wheel position in meters
+    // Get left wheel position in meters: distance = angle * radius
+    // Motor inputs.position is in wheel radians (mechanism units)
     public double getLeftPositionMeters() {
-        return leftFrontMotor.getInputs().position * Constants.wheelRadiusMeters;
+        return leftFrontMotor.getInputs().position * Constants.wheelRadiusMeters; // wheel rad * m/rad = m
     }
 
-    // Get right wheel position in meters
+    // Get right wheel position in meters: distance = angle * radius
+    // Motor inputs.position is in wheel radians (mechanism units)
     public double getRightPositionMeters() {
-        return rightFrontMotor.getInputs().position * Constants.wheelRadiusMeters;
+        return rightFrontMotor.getInputs().position * Constants.wheelRadiusMeters; // wheel rad * m/rad = m
     }
 
-    // Get left wheel velocity in m/s
+    // Get left wheel velocity in m/s: v = omega * radius
+    // Motor inputs.velocity is in wheel rad/s (mechanism units)
     public double getLeftVelocityMetersPerSec() {
-        return leftFrontMotor.getInputs().velocity * Constants.wheelRadiusMeters;
+        return leftFrontMotor.getInputs().velocity * Constants.wheelRadiusMeters; // wheel rad/s * m/rad = m/s
     }
 
-    // Get right wheel velocity in m/s
+    // Get right wheel velocity in m/s: v = omega * radius
+    // Motor inputs.velocity is in wheel rad/s (mechanism units)
     public double getRightVelocityMetersPerSec() {
-        return rightFrontMotor.getInputs().velocity * Constants.wheelRadiusMeters;
+        return rightFrontMotor.getInputs().velocity * Constants.wheelRadiusMeters; // wheel rad/s * m/rad = m/s
     }
 
     // Get current wheel positions
@@ -317,13 +321,14 @@ public class Drive extends SubsystemBase {
         rightFrontMotor.setkV(Constants.driveKV.get());
         rightFrontMotor.setkA(Constants.driveKA.get());
 
-        // Set motor velocities on leader motors (convert m/s to rad/s for motor control)
+        // Set motor velocities on leader motors
+        // Convert linear speed (m/s) to wheel angular velocity (rad/s): omega = v / r
         // Back motors follow automatically
         if (!Constants.driveDisabled.get()) {
-            double leftVelocityRadPerSec = targetLeftSpeed / Constants.wheelRadiusMeters;
-            double rightVelocityRadPerSec = targetRightSpeed / Constants.wheelRadiusMeters;
-            leftFrontMotor.setVelocityWithVoltage(leftVelocityRadPerSec);
-            rightFrontMotor.setVelocityWithVoltage(rightVelocityRadPerSec);
+            double leftWheelRadPerSec = targetLeftSpeed / Constants.wheelRadiusMeters; // wheel rad/s
+            double rightWheelRadPerSec = targetRightSpeed / Constants.wheelRadiusMeters; // wheel rad/s
+            leftFrontMotor.setVelocityWithVoltage(leftWheelRadPerSec);
+            rightFrontMotor.setVelocityWithVoltage(rightWheelRadPerSec);
         }
 
         // Update gyro

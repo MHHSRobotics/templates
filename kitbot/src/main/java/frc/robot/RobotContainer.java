@@ -179,6 +179,9 @@ public class RobotContainer {
          * Touchpad: cancel all commands
          */
 
+        controller.touchpad().onTrue(Commands.runOnce(() -> CommandScheduler.getInstance()
+                .cancelAll()));
+
         if (Constants.driveEnabled) {
             controller.create().onTrue(driveCommands.resetGyro());
 
@@ -190,9 +193,6 @@ public class RobotContainer {
                     .axisMagnitudeGreaterThan(0, Drive.Constants.turnDeadband)
                     .or(controller.axisMagnitudeGreaterThan(1, Drive.Constants.moveDeadband))
                     .onTrue(driveCommands.arcadeDrive(() -> -controller.getLeftY(), () -> -controller.getRightX()));
-
-            controller.touchpad().onTrue(Commands.runOnce(() -> CommandScheduler.getInstance()
-                    .cancelAll()));
         }
 
         // Fuel subsystem bindings

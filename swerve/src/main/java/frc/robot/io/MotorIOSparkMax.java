@@ -75,6 +75,9 @@ public class MotorIOSparkMax extends MotorIO {
     private double minLimit = -Double.MAX_VALUE;
     private double maxLimit = Double.MAX_VALUE;
 
+    // Current voltage output of the motor (for sim only, since SparkMax doesn't keep track of it)
+    private double currentVoltage;
+
     private enum SparkControlType {
         BRAKE,
         COAST,
@@ -136,27 +139,33 @@ public class MotorIOSparkMax extends MotorIO {
         // SparkMax doesn't have a direct "isConnected" method, check CAN fault
         inputs.connected = disconnected ? false : !faults.can;
 
-        // Get position/velocity from motor's built-in encoder
-        double rawPosition = motor.getEncoder().getPosition(); // rotations
-        double rawVelocity = motor.getEncoder().getVelocity(); // RPM
-        double motorPosition = Units.rotationsToRadians(rawPosition / gearRatio) - offset;
-        double motorVelocity = Units.rotationsPerMinuteToRadiansPerSecond(rawVelocity); // RPM to rad/s
+        // Get position/velocity from motor's built-in encoder and convert to mechanism units
+        double rawPosition = motor.getEncoder().getPosition(); // motor rotations
+        double rawVelocity = motor.getEncoder().getVelocity(); // motor RPM
+        // Convert motor rotations to mechanism radians (divide by gearRatio)
+        double mechPosition = Units.rotationsToRadians(rawPosition / gearRatio) - offset; // mechanism rad
+        // Convert motor RPM to mechanism rad/s (divide by gearRatio)
+        double mechVelocity = Units.rotationsPerMinuteToRadiansPerSecond(rawVelocity / gearRatio); // mechanism rad/s
 
         // Use connected encoder for feedback if available, otherwise use motor encoder
         if (connectedEncoder != null) {
-            inputs.position = connectedEncoder.getInputs().positionRad;
-            inputs.velocity = connectedEncoder.getInputs().velocityRadPerSec;
-            inputs.encoderDiff = motorPosition - inputs.position;
+            inputs.position = connectedEncoder.getInputs().positionRad; // mechanism rad
+            inputs.velocity = connectedEncoder.getInputs().velocityRadPerSec; // mechanism rad/s
+            inputs.encoderDiff = mechPosition - inputs.position; // rad
         } else {
-            inputs.position = motorPosition;
-            inputs.velocity = motorVelocity;
+            inputs.position = mechPosition; // mechanism rad
+            inputs.velocity = mechVelocity; // mechanism rad/s
         }
 
         // Estimate acceleration from velocity change (SparkMax doesn't provide it directly)
         inputs.accel = (inputs.velocity - prevVelocity) / Constants.loopTime;
         prevVelocity = inputs.velocity;
 
-        inputs.appliedVoltage = motor.getAppliedOutput() * motor.getBusVoltage();
+        if (Constants.currentMode == Mode.REAL) {
+            inputs.appliedVoltage = motor.getAppliedOutput() * motor.getBusVoltage();
+        } else {
+            inputs.appliedVoltage = currentVoltage;
+        }
         inputs.supplyVoltage = motor.getBusVoltage();
         inputs.supplyCurrent = motor.getOutputCurrent();
         inputs.torqueCurrent = motor.getOutputCurrent(); // SparkMax doesn't distinguish torque vs supply current
@@ -165,29 +174,10 @@ public class MotorIOSparkMax extends MotorIO {
 
         inputs.setpoint = setpointValue;
         inputs.setpointVelocity = 0; // MotionMagic only, isn't implemented here
-        inputs.error = inputs.setpoint - inputs.position;
 
         // Calculate current feedforward value
         double currentFeedforward = feedforward == null ? 0 : feedforward.get();
         inputs.feedforward = currentFeedforward;
-
-        switch (currentControl) {
-            case POSITION:
-                inputs.derivOutput = positionPID.getD();
-                inputs.intOutput = positionPID.getI();
-                inputs.propOutput = positionPID.getP();
-                break;
-            case VELOCITY:
-                inputs.derivOutput = velocityPID.getD();
-                inputs.intOutput = velocityPID.getI();
-                inputs.propOutput = velocityPID.getP();
-                break;
-            default:
-                inputs.derivOutput = 0;
-                inputs.intOutput = 0;
-                inputs.propOutput = 0;
-                break;
-        }
 
         inputs.temp = motor.getMotorTemperature();
         inputs.dutyCycle = motor.getAppliedOutput();
@@ -212,20 +202,45 @@ public class MotorIOSparkMax extends MotorIO {
             case BRAKE:
                 setIdleMode(IdleMode.kBrake);
                 motor.stopMotor();
+                currentVoltage = 0;
+                inputs.error = 0;
+                inputs.propOutput = 0;
+                inputs.intOutput = 0;
+                inputs.derivOutput = 0;
                 break;
             case COAST:
                 setIdleMode(IdleMode.kCoast);
                 motor.stopMotor();
+                currentVoltage = 0;
+                inputs.error = 0;
+                inputs.propOutput = 0;
+                inputs.intOutput = 0;
+                inputs.derivOutput = 0;
                 break;
             case NEUTRAL:
                 setIdleMode(brakeOnNeutral ? IdleMode.kBrake : IdleMode.kCoast);
                 motor.stopMotor();
+                currentVoltage = 0;
+                inputs.error = 0;
+                inputs.propOutput = 0;
+                inputs.intOutput = 0;
+                inputs.derivOutput = 0;
                 break;
             case DUTY_CYCLE:
                 motor.set(setpointValue);
+                currentVoltage = motor.getBusVoltage() * setpointValue;
+                inputs.error = 0;
+                inputs.propOutput = 0;
+                inputs.intOutput = 0;
+                inputs.derivOutput = 0;
                 break;
             case VOLTAGE:
                 motor.setVoltage(setpointValue);
+                currentVoltage = setpointValue;
+                inputs.error = 0;
+                inputs.propOutput = 0;
+                inputs.intOutput = 0;
+                inputs.derivOutput = 0;
                 break;
             case POSITION:
                 double posPID = positionPID.calculate(inputs.position, setpointValue);
@@ -242,10 +257,17 @@ public class MotorIOSparkMax extends MotorIO {
                             case UseClosedLoopSign -> Math.signum(posPID);
                         };
                 double posFeedforward = currentFeedforward + kS * posStaticSign + gravityFF;
-                motor.setVoltage(posPID + posFeedforward);
+                double totalVoltage = posPID + posFeedforward;
+                motor.setVoltage(totalVoltage);
+                currentVoltage = totalVoltage;
+                inputs.error = positionPID.getError();
+                inputs.propOutput = positionPID.getError() * positionPID.getP();
+                inputs.intOutput = positionPID.getAccumulatedError() * positionPID.getI();
+                inputs.derivOutput = positionPID.getErrorDerivative() * positionPID.getD();
                 break;
             case VELOCITY:
                 double velPID = velocityPID.calculate(inputs.velocity, setpointValue);
+
                 // Calculate desired acceleration from setpoint change
                 double desiredAccel = (setpointValue - prevVelocitySetpoint) / Constants.loopTime;
                 prevVelocitySetpoint = setpointValue;
@@ -257,11 +279,21 @@ public class MotorIOSparkMax extends MotorIO {
                         };
                 double velFeedforward =
                         currentFeedforward + kS * velStaticSign + kV * setpointValue + kA * desiredAccel;
-                motor.setVoltage(velPID + velFeedforward);
+                totalVoltage = velPID + velFeedforward;
+                motor.setVoltage(totalVoltage);
+                currentVoltage = totalVoltage;
+                inputs.error = velocityPID.getError();
+                inputs.propOutput = velocityPID.getError() * velocityPID.getP();
+                inputs.intOutput = velocityPID.getAccumulatedError() * velocityPID.getI();
+                inputs.derivOutput = velocityPID.getErrorDerivative() * velocityPID.getD();
                 break;
             case FOLLOW:
                 // Follow is configured via config, nothing to do here
                 break;
+        }
+        // Negate voltage if the motor is inverted
+        if (inverted) {
+            currentVoltage *= -1;
         }
     }
 
