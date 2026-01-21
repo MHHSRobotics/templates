@@ -28,15 +28,11 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.mechanism.LoggedMechanism2d;
-import org.littletonrobotics.junction.mechanism.LoggedMechanismLigament2d;
-import org.littletonrobotics.junction.mechanism.LoggedMechanismRoot2d;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
@@ -168,15 +164,6 @@ public class Swerve extends SubsystemBase {
     // On-screen drawing of the drive to show module directions and speeds
     private final LoggedMechanism2d mech = new LoggedMechanism2d(3, 3);
 
-    // Base points for each module drawing
-    private final LoggedMechanismRoot2d[] roots = new LoggedMechanismRoot2d[4];
-
-    // Bars showing the speed (length) and direction (angle) of each module
-    private final LoggedMechanismLigament2d[] speeds = new LoggedMechanismLigament2d[4];
-
-    // Bars showing the target speed and direction of each module
-    private final LoggedMechanismLigament2d[] targets = new LoggedMechanismLigament2d[4];
-
     // Holonomic controller for auto-align
     private final PIDController xController;
     private final PIDController yController;
@@ -246,9 +233,6 @@ public class Swerve extends SubsystemBase {
 
         // Send field visual to SmartDashboard
         SmartDashboard.putData("Field", field);
-
-        // Set up the on-screen visualization for the four modules
-        initializeMechs();
 
         // Reset the gyro
         resetGyro();
@@ -584,58 +568,9 @@ public class Swerve extends SubsystemBase {
         // Feed odometry to the pose estimator (time, heading, and wheel distances)
         estimator.updateWithTime(RobotController.getFPGATime() / 1000000., gyroAngle, getModulePositions());
 
-        // Update the module speed/direction drawing
-        refreshVisualization();
-
         Logger.recordOutput("Swerve/Visualization", mech);
 
         // Update field pose
         field.setRobotPose(getPose());
-    }
-
-    // Make a white line between two modules in the visualization so the robot outline is visible
-    private void connect(int firstIndex, int secondIndex) {
-        Translation2d[] moduleTranslations = getModuleTranslations();
-        Translation2d diff = moduleTranslations[secondIndex].minus(moduleTranslations[firstIndex]);
-        roots[firstIndex].append(new LoggedMechanismLigament2d(
-                "Connection" + firstIndex + "" + secondIndex,
-                diff.getNorm(),
-                diff.getAngle().getDegrees(),
-                2,
-                new Color8Bit(Color.kWhite)));
-    }
-
-    private void initializeMechs() {
-        Translation2d[] moduleTranslations = getModuleTranslations();
-        // Create roots at the four corners of the swerve bot drawing
-        for (int i = 0; i < 4; i++) {
-            LoggedMechanismRoot2d newRoot =
-                    mech.getRoot("Root" + i, 1.5 + moduleTranslations[i].getX(), 1.5 + moduleTranslations[i].getY());
-            roots[i] = newRoot;
-            // The speed lines are added below after we draw the connections
-        }
-        // Connect each pair of swerve modules to outline the drivetrain
-        connect(0, 1);
-        connect(0, 2);
-        connect(1, 3);
-        connect(2, 3);
-        for (int i = 0; i < 4; i++) {
-            speeds[i] = roots[i].append(new LoggedMechanismLigament2d("Speed" + i, 0, 0, 8, new Color8Bit(Color.kRed)));
-            targets[i] =
-                    roots[i].append(new LoggedMechanismLigament2d("Target" + i, 0, 0, 3, new Color8Bit(Color.kYellow)));
-        }
-    }
-
-    // Make the visualization match the real module speeds and directions
-    private void refreshVisualization() {
-        SwerveModuleState[] states = getModuleStates();
-        SwerveModuleState[] targetStates = getModuleTargets();
-        for (int i = 0; i < 4; i++) {
-            // Scale length down so it fits nicely on screen
-            speeds[i].setLength(states[i].speedMetersPerSecond / 12);
-            speeds[i].setAngle(states[i].angle);
-            targets[i].setLength(targetStates[i].speedMetersPerSecond / 12);
-            targets[i].setAngle(targetStates[i].angle);
-        }
     }
 }
