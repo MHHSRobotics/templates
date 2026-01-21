@@ -22,11 +22,12 @@
             "/AdvantageKit/RealOutputs/Swerve",
             "/AdvantageKit/Vision",
             "/AdvantageKit/Vision/BLAT",
-            "/AdvantageKit/Vision/BRAT"
+            "/AdvantageKit/Vision/BRAT",
+            "/AdvantageKit/RealOutputs/SwerveSim"
           ]
         },
         "tabs": {
-          "selected": 2,
+          "selected": 5,
           "tabs": [
             {
               "type": 0,
@@ -170,7 +171,7 @@
               },
               "controllerUUID": "1xxs899z1qkcszsmqzwthzrdhz843fq4",
               "renderer": null,
-              "controlsHeight": 286
+              "controlsHeight": 306
             },
             {
               "type": 5,
@@ -230,6 +231,16 @@
                       "model": "2025 KitBot",
                       "color": "#00ff00"
                     }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/SwerveSim/ActualPose",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {
+                      "model": "2026 KitBot",
+                      "color": "#ff8c00"
+                    }
                   }
                 ],
                 "game": "FRC:2026 Field"
@@ -239,17 +250,17 @@
                 "cameraIndex": -2,
                 "orbitFov": 50,
                 "cameraPosition": [
-                  -2.0929632860151646,
-                  1.3775221837317502,
-                  -3.181285202802975
+                  -3.478380879943919,
+                  1.2877519138798792,
+                  -2.6625800601327096
                 ],
                 "cameraTarget": [
-                  1.8586729675480524,
-                  -0.4197384952224814,
-                  1.6401404483682394
+                  2.9608124122165815,
+                  -0.32874127012286936,
+                  0.7861334471797752
                 ]
               },
-              "controlsHeight": 200
+              "controlsHeight": 312
             },
             {
               "type": 12,

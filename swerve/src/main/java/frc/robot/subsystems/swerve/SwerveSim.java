@@ -7,6 +7,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import org.littletonrobotics.junction.Logger;
+
 import frc.robot.Constants;
 
 public class SwerveSim extends SubsystemBase {
@@ -34,5 +36,6 @@ public class SwerveSim extends SubsystemBase {
         ChassisSpeeds speeds = kinematics.toChassisSpeeds(states);
         Twist2d twist = speeds.toTwist2d(Constants.loopTime);
         currentPose = currentPose.exp(twist);
+        Logger.recordOutput("SwerveSim/ActualPose", currentPose);
     }
 }
