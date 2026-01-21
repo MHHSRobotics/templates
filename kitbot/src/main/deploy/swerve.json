@@ -1,0 +1,100 @@
+{
+    "drive_gains": {
+        "P": 0.1,
+        "I": 0.0,
+        "D": 0.0,
+        "kS": 0.048,
+        "kV": 0.124
+    },
+    "steer_gains": {
+        "P": 50.0,
+        "I": 0.0,
+        "D": 0.4,
+        "kS": 0.1,
+        "kV": 2.66,
+        "kA": 0.0
+    },
+    "drive_inertia": 0.01,
+    "steer_inertia": 0.01,
+    "drive_friction_voltage": 0.4,
+    "steer_friction_voltage": 0.4,
+    "drive_ratio": 6.122448979591837,
+    "steer_ratio": 21.428571428571427,
+    "wheel_radius": 2.0,
+    "slip_current": 120.0,
+    "max_speed": 5.21,
+    "max_angular_speed": 4.71,
+    "current_limit": 40.0,
+    "gyro_id": 0,
+    "can_bus": "rhino",
+    "modules": {
+        "front_left": {
+            "x": 12,
+            "y": 12,
+            "drive_motor": {
+                "id": 1,
+                "inverted": false
+            },
+            "angle_motor": {
+                "id": 5,
+                "inverted": true
+            },
+            "encoder": {
+                "id": 9,
+                "inverted": false,
+                "offset": 0.1904296875
+            }
+        },
+        "front_right": {
+            "x": 12,
+            "y": -12,
+            "drive_motor": {
+                "id": 2,
+                "inverted": true
+            },
+            "angle_motor": {
+                "id": 6,
+                "inverted": true
+            },
+            "encoder": {
+                "id": 10,
+                "inverted": false,
+                "offset": -0.158447265625
+            }
+        },
+        "back_left": {
+            "x": -12,
+            "y": 12,
+            "drive_motor": {
+                "id": 3,
+                "inverted": false
+            },
+            "angle_motor": {
+                "id": 7,
+                "inverted": true
+            },
+            "encoder": {
+                "id": 11,
+                "inverted": false,
+                "offset": -0.303466796875
+            }
+        },
+        "back_right": {
+            "x": -12,
+            "y": -12,
+            "drive_motor": {
+                "id": 4,
+                "inverted": true
+            },
+            "angle_motor": {
+                "id": 8,
+                "inverted": true
+            },
+            "encoder": {
+                "id": 12,
+                "inverted": false,
+                "offset": -0.017578125
+            }
+        }
+    }
+}
