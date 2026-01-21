@@ -251,7 +251,7 @@ public class MotorIO {
         unsupportedFeature();
     }
 
-    // Connects a forward hardware limit switch
+    // Connects a reverse hardware limit switch
     public void connectReverseLimitSwitch(int id) {
         unsupportedFeature();
     }

@@ -89,7 +89,7 @@ public class Swerve extends SubsystemBase {
 
         // Initial pose of the bot in simulation
         public static final FieldPose2d simInitialPose =
-                new FieldPose2d(new Pose2d(7, Field.fieldWidth / 2, Rotation2d.k180deg));
+                new FieldPose2d(new Pose2d(3.5, Field.fieldWidth / 2, Rotation2d.k180deg));
 
         public static final LoggedNetworkBoolean swerveLocked =
                 new LoggedNetworkBoolean("Swerve/Locked", true); // Toggle to enable braking when stopped
