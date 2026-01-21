@@ -34,8 +34,6 @@ public class SwerveCommands {
                         () -> {
                             double x = dx.getAsDouble();
                             double y = dy.getAsDouble();
-                            System.out.println(x);
-                            System.out.println(y);
 
                             // Get the distance from (x,y) to the origin
                             double radius = Math.hypot(x, y);
