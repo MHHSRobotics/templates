@@ -1,10 +1,10 @@
 {
   "hubs": [
     {
-      "x": 496,
-      "y": 224,
-      "width": 1142,
-      "height": 650,
+      "x": 462,
+      "y": 109,
+      "width": 1340,
+      "height": 816,
       "state": {
         "sidebar": {
           "width": 300,
@@ -19,7 +19,10 @@
             "/AdvantageKit/NetworkInputs",
             "/AdvantageKit/PowerDistribution",
             "/AdvantageKit/RadioStatus",
-            "/AdvantageKit/RealOutputs/Swerve"
+            "/AdvantageKit/RealOutputs/Swerve",
+            "/AdvantageKit/Vision",
+            "/AdvantageKit/Vision/BLAT",
+            "/AdvantageKit/Vision/BRAT"
           ]
         },
         "tabs": {
@@ -125,12 +128,31 @@
                     }
                   },
                   {
+                    "type": "states",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/TargetStates",
+                    "logType": "SwerveModuleState[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00",
+                      "arrangement": "0,1,2,3"
+                    }
+                  },
+                  {
                     "type": "chassisSpeeds",
                     "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/ChassisSpeeds",
                     "logType": "ChassisSpeeds",
                     "visible": true,
                     "options": {
                       "color": "#0000ff"
+                    }
+                  },
+                  {
+                    "type": "chassisSpeeds",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/TargetChassisSpeeds",
+                    "logType": "ChassisSpeeds",
+                    "visible": true,
+                    "options": {
+                      "color": "#ff8c00"
                     }
                   },
                   {
@@ -148,7 +170,7 @@
               },
               "controllerUUID": "1xxs899z1qkcszsmqzwthzrdhz843fq4",
               "renderer": null,
-              "controlsHeight": 200
+              "controlsHeight": 286
             },
             {
               "type": 5,
@@ -188,6 +210,26 @@
                     "options": {
                       "model": "Varsam"
                     }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:/AdvantageKit/Vision/BLAT/Poses",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "model": "2025 KitBot",
+                      "color": "#00ff00"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:/AdvantageKit/Vision/BRAT/Poses",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "model": "2025 KitBot",
+                      "color": "#00ff00"
+                    }
                   }
                 ],
                 "game": "FRC:2026 Field"
@@ -197,14 +239,14 @@
                 "cameraIndex": -2,
                 "orbitFov": 50,
                 "cameraPosition": [
-                  0.22491711012785665,
-                  2.6780456027281443,
-                  -3.211436745081703
+                  -2.0929632860151646,
+                  1.3775221837317502,
+                  -3.181285202802975
                 ],
                 "cameraTarget": [
-                  2.2243692412717806,
-                  -0.33476974519652253,
-                  1.628731753585522
+                  1.8586729675480524,
+                  -0.4197384952224814,
+                  1.6401404483682394
                 ]
               },
               "controlsHeight": 200
