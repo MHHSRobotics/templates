@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
-import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.SignalLogger;
 
 import org.littletonrobotics.junction.LogFileUtil;
@@ -140,11 +139,6 @@ public class Robot extends LoggedRobot {
             lowBatteryAlert.set(false);
             lowBatteryTimer.reset();
         }
-
-        // Log CANivore status
-        CANBusStatus status = Constants.swerveBus.getStatus();
-        Logger.recordOutput("CANivore/Utilization", status.BusUtilization);
-        Logger.recordOutput("CANivore/Status", status.Status.isOK());
 
         // RobotContainer periodic gets called _after_ the subsystems
         robotContainer.periodic();

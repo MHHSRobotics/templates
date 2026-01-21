@@ -29,9 +29,9 @@ public final class Constants {
 
     public static final double loopTime = 0.02; // Period of main robot loop, 20ms default
 
-    public static final CANBus defaultBus = new CANBus("rio"); // CAN bus used for non-swerve motors
+    public static final CANBus defaultBus = new CANBus("rio"); // CAN bus used for non-drive motors
 
-    public static final CANBus swerveBus = new CANBus("rhino"); // CAN bus used for swerve motors
+    public static final CANBus driveBus = new CANBus("rio"); // CAN bus used for drive motors (rio for kitbot)
 
     public static final double loopOverrunWarningTimeout =
             0.2; // Amount of time a robot tick can take before reporting a warning to DS
@@ -44,9 +44,7 @@ public final class Constants {
 
     public static final boolean simIsRedAlliance = false; // Whether simulated FMS is on red alliance
 
-    public static final double simSwerveError = 0; // Simulated error in swerve odometry, set to 0 for no error
-
-    // Toggles for susbsytems
-    public static final boolean swerveEnabled = true;
-    public static final boolean visionEnabled = true;
+    // Toggles for subsystems
+    public static final boolean driveEnabled = true;
+    public static final boolean fuelEnabled = true;
 }

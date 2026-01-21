@@ -12,32 +12,28 @@ import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import frc.robot.Constants.Mode;
-import frc.robot.commands.SwerveCommands;
-import frc.robot.io.CameraIO;
-import frc.robot.io.CameraIOPhotonCamera;
-import frc.robot.io.EncoderIO;
-import frc.robot.io.EncoderIOCANcoder;
+import frc.robot.commands.DriveCommands;
+import frc.robot.commands.FuelCommands;
 import frc.robot.io.GyroIO;
-import frc.robot.io.GyroIOPigeon;
 import frc.robot.io.MotorIO;
-import frc.robot.io.MotorIOTalonFX;
+import frc.robot.io.MotorIOSparkMax;
 import frc.robot.network.RobotPublisher;
-import frc.robot.subsystems.swerve.GyroSim;
-import frc.robot.subsystems.swerve.Swerve;
-import frc.robot.subsystems.swerve.SwerveModule;
-import frc.robot.subsystems.swerve.SwerveModuleSim;
-import frc.robot.subsystems.swerve.SwerveSim;
-import frc.robot.subsystems.swerve.TunerConstants;
-import frc.robot.subsystems.swerve.VisionSim;
+import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.DriveSim;
+import frc.robot.subsystems.drive.DriveWheelSim;
+import frc.robot.subsystems.fuel.Fuel;
 import frc.robot.util.Alerts;
 
 public class RobotContainer {
     // Subsystems
-    private Swerve swerve;
+    private Drive drive;
+    private Fuel fuel;
 
     // Subsystem commands
-    private SwerveCommands swerveCommands;
+    private DriveCommands driveCommands;
+    private FuelCommands fuelCommands;
 
     private final CommandPS5Controller controller = new CommandPS5Controller(0); // Main drive controller
 
@@ -74,164 +70,103 @@ public class RobotContainer {
 
         configureAutoChooser(); // Set up the auto chooser
 
-        publisher = new RobotPublisher(swerve); // Initialize the 3D data publisher
+        if (Constants.driveEnabled) {
+            publisher = new RobotPublisher(drive); // Initialize the 3D data publisher
+        }
     }
 
     private void initSubsystems() {
-        // Initialize swerve motors, encoders, and gyro
-        if (Constants.swerveEnabled) {
-            // Create variables for each
-            MotorIO flDriveMotor, flAngleMotor, frDriveMotor, frAngleMotor;
-            MotorIO blDriveMotor, blAngleMotor, brDriveMotor, brAngleMotor;
-            EncoderIO flEncoder, frEncoder, blEncoder, brEncoder;
+        // Initialize tank drive motors and gyro
+        if (Constants.driveEnabled) {
+            // Create variables for drive motors (front = leaders, back = followers) and gyro
+            MotorIO leftFrontMotor, leftBackMotor, rightFrontMotor, rightBackMotor;
             GyroIO gyro;
+
             switch (Constants.currentMode) {
-                // If in REAL or SIM mode, use MotorIOTalonFX for motors, EncoderIOCANcoder for encoders, and
-                // GyroIOPigeon for the gyro
+                // If in REAL or SIM mode, use MotorIOSparkMax for motors
                 case REAL:
                 case SIM:
-                    flDriveMotor = new MotorIOTalonFX(
-                            TunerConstants.FrontLeft.DriveMotorId,
-                            Constants.swerveBus,
-                            "front left drive motor",
-                            "Swerve/FrontLeft/Drive");
-                    flAngleMotor = new MotorIOTalonFX(
-                            TunerConstants.FrontLeft.SteerMotorId,
-                            Constants.swerveBus,
-                            "front left angle motor",
-                            "Swerve/FrontLeft/Steer");
-                    flEncoder = new EncoderIOCANcoder(
-                            TunerConstants.FrontLeft.EncoderId,
-                            Constants.swerveBus,
-                            "front left encoder",
-                            "Swerve/FrontLeft/Encoder");
+                    // Create all 4 drive motors - CIM motors are brushed
+                    leftFrontMotor = new MotorIOSparkMax(
+                            Drive.Constants.leftFrontMotorId,
+                            MotorType.kBrushed,
+                            "left front drive motor",
+                            "Drive/LeftFront");
+                    leftBackMotor = new MotorIOSparkMax(
+                            Drive.Constants.leftBackMotorId,
+                            MotorType.kBrushed,
+                            "left back drive motor",
+                            "Drive/LeftBack");
+                    rightFrontMotor = new MotorIOSparkMax(
+                            Drive.Constants.rightFrontMotorId,
+                            MotorType.kBrushed,
+                            "right front drive motor",
+                            "Drive/RightFront");
+                    rightBackMotor = new MotorIOSparkMax(
+                            Drive.Constants.rightBackMotorId,
+                            MotorType.kBrushed,
+                            "right back drive motor",
+                            "Drive/RightBack");
 
-                    frDriveMotor = new MotorIOTalonFX(
-                            TunerConstants.FrontRight.DriveMotorId,
-                            Constants.swerveBus,
-                            "front right drive motor",
-                            "Swerve/FrontRight/Drive");
-                    frAngleMotor = new MotorIOTalonFX(
-                            TunerConstants.FrontRight.SteerMotorId,
-                            Constants.swerveBus,
-                            "front right angle motor",
-                            "Swerve/FrontRight/Steer");
-                    frEncoder = new EncoderIOCANcoder(
-                            TunerConstants.FrontRight.EncoderId,
-                            Constants.swerveBus,
-                            "front right encoder",
-                            "Swerve/FrontRight/Encoder");
-
-                    blDriveMotor = new MotorIOTalonFX(
-                            TunerConstants.BackLeft.DriveMotorId,
-                            Constants.swerveBus,
-                            "back left drive motor",
-                            "Swerve/BackLeft/Drive");
-                    blAngleMotor = new MotorIOTalonFX(
-                            TunerConstants.BackLeft.SteerMotorId,
-                            Constants.swerveBus,
-                            "back left angle motor",
-                            "Swerve/BackLeft/Steer");
-                    blEncoder = new EncoderIOCANcoder(
-                            TunerConstants.BackLeft.EncoderId,
-                            Constants.swerveBus,
-                            "back left encoder",
-                            "Swerve/BackLeft/Encoder");
-
-                    brDriveMotor = new MotorIOTalonFX(
-                            TunerConstants.BackRight.DriveMotorId,
-                            Constants.swerveBus,
-                            "back right drive motor",
-                            "Swerve/BackRight/Drive");
-                    brAngleMotor = new MotorIOTalonFX(
-                            TunerConstants.BackRight.SteerMotorId,
-                            Constants.swerveBus,
-                            "back right angle motor",
-                            "Swerve/BackRight/Steer");
-                    brEncoder = new EncoderIOCANcoder(
-                            TunerConstants.BackRight.EncoderId,
-                            Constants.swerveBus,
-                            "back right encoder",
-                            "Swerve/BackRight/Encoder");
-
-                    gyro = new GyroIOPigeon(
-                            TunerConstants.DrivetrainConstants.Pigeon2Id, Constants.swerveBus, "gyro", "Swerve/Gyro");
+                    // No gyro on kitbot - use empty GyroIO (Drive will use wheel odometry for heading)
+                    gyro = new GyroIO("gyro", "Drive/Gyro");
                     break;
                 default:
                     // If in REPLAY, use empty MotorIO objects
-                    flDriveMotor = new MotorIO("front left drive motor", "Swerve/FrontLeft/Drive");
-                    flAngleMotor = new MotorIO("front left angle motor", "Swerve/FrontLeft/Steer");
-                    flEncoder = new EncoderIO("front left encoder", "Swerve/FrontLeft/Encoder");
-
-                    frDriveMotor = new MotorIO("front right drive motor", "Swerve/FrontRight/Drive");
-                    frAngleMotor = new MotorIO("front right angle motor", "Swerve/FrontRight/Steer");
-                    frEncoder = new EncoderIO("front right encoder", "Swerve/FrontRight/Encoder");
-
-                    blDriveMotor = new MotorIO("back left drive motor", "Swerve/BackLeft/Drive");
-                    blAngleMotor = new MotorIO("back left angle motor", "Swerve/BackLeft/Steer");
-                    blEncoder = new EncoderIO("back left encoder", "Swerve/BackLeft/Encoder");
-
-                    brDriveMotor = new MotorIO("back right drive motor", "Swerve/BackRight/Drive");
-                    brAngleMotor = new MotorIO("back right angle motor", "Swerve/BackRight/Steer");
-                    brEncoder = new EncoderIO("back right encoder", "Swerve/BackRight/Encoder");
-
-                    gyro = new GyroIO("gyro", "Swerve/Gyro");
+                    leftFrontMotor = new MotorIO("left front drive motor", "Drive/LeftFront");
+                    leftBackMotor = new MotorIO("left back drive motor", "Drive/LeftBack");
+                    rightFrontMotor = new MotorIO("right front drive motor", "Drive/RightFront");
+                    rightBackMotor = new MotorIO("right back drive motor", "Drive/RightBack");
+                    gyro = new GyroIO("gyro", "Drive/Gyro");
                     break;
             }
-            // Initialize swerve modules
-            SwerveModule fl = new SwerveModule(flDriveMotor, flAngleMotor, flEncoder, TunerConstants.FrontLeft);
-            SwerveModule fr = new SwerveModule(frDriveMotor, frAngleMotor, frEncoder, TunerConstants.FrontRight);
-            SwerveModule bl = new SwerveModule(blDriveMotor, blAngleMotor, blEncoder, TunerConstants.BackLeft);
-            SwerveModule br = new SwerveModule(brDriveMotor, brAngleMotor, brEncoder, TunerConstants.BackRight);
 
-            swerve = new Swerve(gyro, fl, fr, bl, br); // Initialize swerve subsystem
+            // Initialize drive subsystem with all 4 motors (Drive configures followers internally)
+            drive = new Drive(gyro, leftFrontMotor, leftBackMotor, rightFrontMotor, rightBackMotor);
 
-            if (Constants.visionEnabled) {
-                // Create camera variables
-                CameraIO brat;
-                CameraIO blat;
-                switch (Constants.currentMode) {
-                    case REAL:
-                    case SIM:
-                        // If in real bot or sim, use CameraIOPhotonCamera
-                        brat = new CameraIOPhotonCamera(
-                                "BackRight_AT", "Vision/BRAT", Swerve.VisionConstants.bratPose, 60);
-                        blat = new CameraIOPhotonCamera(
-                                "BackLeft_AT", "Vision/BLAT", Swerve.VisionConstants.blatPose, 60);
-                        break;
-                    default:
-                        // If in replay use an empty CameraIO
-                        brat = new CameraIO("BackRight_AT", "Vision/BRAT");
-                        blat = new CameraIO("BackLeft_AT", "Vision/BLAT");
-                        break;
-                }
-                // Add cameras to swerve ododmetry
-                swerve.addCameraSource(brat);
-                swerve.addCameraSource(blat);
-            }
-
-            // If mode is SIM, start the simulations for swerve modules and gyro
+            // If mode is SIM, start the simulations for drive wheels and overall drive
             if (Constants.currentMode == Mode.SIM) {
-                SwerveModuleSim[] moduleSims = new SwerveModuleSim[] {
-                    new SwerveModuleSim(flDriveMotor, flAngleMotor, flEncoder, TunerConstants.FrontLeft),
-                    new SwerveModuleSim(frDriveMotor, frAngleMotor, frEncoder, TunerConstants.FrontRight),
-                    new SwerveModuleSim(blDriveMotor, blAngleMotor, blEncoder, TunerConstants.BackLeft),
-                    new SwerveModuleSim(brDriveMotor, brAngleMotor, brEncoder, TunerConstants.BackRight)
-                };
-
-                SwerveSim swerveSim = new SwerveSim(moduleSims);
-
-                new GyroSim(gyro, swerveSim);
-                if (Constants.visionEnabled) {
-                    new VisionSim(swerve.getCameras(), swerveSim);
-                }
+                // Only simulate the leader motors - followers copy their output
+                DriveWheelSim leftWheelSim = new DriveWheelSim(leftFrontMotor);
+                DriveWheelSim rightWheelSim = new DriveWheelSim(rightFrontMotor);
+                new DriveSim(leftWheelSim, rightWheelSim, gyro);
             }
+        }
+
+        // Initialize fuel subsystem motors
+        if (Constants.fuelEnabled) {
+            MotorIO intakeLauncherMotor, feederMotor;
+
+            switch (Constants.currentMode) {
+                case REAL:
+                case SIM:
+                    // Create fuel motors - brushed motors
+                    intakeLauncherMotor = new MotorIOSparkMax(
+                            Fuel.Constants.intakeLauncherMotorId,
+                            MotorType.kBrushed,
+                            "intake launcher motor",
+                            "Fuel/IntakeLauncher");
+                    feederMotor = new MotorIOSparkMax(
+                            Fuel.Constants.feederMotorId, MotorType.kBrushed, "feeder motor", "Fuel/Feeder");
+                    break;
+                default:
+                    // If in REPLAY, use empty MotorIO objects
+                    intakeLauncherMotor = new MotorIO("intake launcher motor", "Fuel/IntakeLauncher");
+                    feederMotor = new MotorIO("feeder motor", "Fuel/Feeder");
+                    break;
+            }
+
+            // Initialize fuel subsystem
+            fuel = new Fuel(intakeLauncherMotor, feederMotor);
         }
     }
 
     private void initCommands() {
-        if (Constants.swerveEnabled) {
-            swerveCommands = new SwerveCommands(swerve);
+        if (Constants.driveEnabled) {
+            driveCommands = new DriveCommands(drive);
+        }
+        if (Constants.fuelEnabled) {
+            fuelCommands = new FuelCommands(fuel);
         }
     }
 
@@ -239,29 +174,37 @@ public class RobotContainer {
         /* ---- Main controller bindings ---- */
         /*
          * Reset gyro: create
-         * Left stick: drive
+         * Left stick Y: forward/backward
          * Right stick X: turn
          * Touchpad: cancel all commands
          */
 
-        if (Constants.swerveEnabled) {
-            controller.create().onTrue(swerveCommands.resetGyro());
+        if (Constants.driveEnabled) {
+            controller.create().onTrue(driveCommands.resetGyro());
 
             /*
-             * How this works:
-             * When the driver controller is outside of its deadband, it runs swerveCommands.drive(), which overrides auto align commands. swerveCommands.drive() will continue to run until an auto align command is executed, so the swerve drive will stop when both sticks are at 0.
+             * Arcade drive using left stick Y for forward/backward and right stick X for turning.
+             * The command runs continuously when either stick is outside its deadband.
              */
             controller
-                    .axisMagnitudeGreaterThan(2, Swerve.Constants.turnDeadband)
-                    .or(() -> Math.hypot(controller.getLeftX(), controller.getLeftY()) > Swerve.Constants.moveDeadband)
-                    .onTrue(swerveCommands.drive(
-                            () -> -controller.getLeftY(),
-                            () -> -controller.getLeftX(),
-                            () -> -controller.getRightX(),
-                            () -> Swerve.Constants.swerveFieldCentric.get()));
+                    .axisMagnitudeGreaterThan(0, Drive.Constants.turnDeadband)
+                    .or(controller.axisMagnitudeGreaterThan(1, Drive.Constants.moveDeadband))
+                    .onTrue(driveCommands.arcadeDrive(() -> -controller.getLeftY(), () -> -controller.getRightX()));
 
             controller.touchpad().onTrue(Commands.runOnce(() -> CommandScheduler.getInstance()
                     .cancelAll()));
+        }
+
+        // Fuel subsystem bindings
+        if (Constants.fuelEnabled) {
+            // L1: Intake - runs while held
+            controller.L1().whileTrue(fuelCommands.intake());
+
+            // R1: Launch sequence - spin up then launch, runs while held
+            controller.R1().whileTrue(fuelCommands.launchSequence());
+
+            // Cross (X): Eject - runs while held
+            controller.cross().whileTrue(fuelCommands.eject());
         }
     }
 
@@ -273,58 +216,56 @@ public class RobotContainer {
          */
         // Initialize dashboard choosers
         testControllerChooser = new LoggedDashboardChooser<>("Test/Subsystem");
-        testControllerChooser.addOption("Swerve", "Swerve");
+        testControllerChooser.addOption("Drive", "Drive");
 
         testControllerManual = new LoggedDashboardChooser<>("Test/Type");
         testControllerManual.addOption("Manual", "Manual");
         testControllerManual.addOption("PID", "PID");
         testControllerManual.addOption("Fast", "Fast");
 
-        // Test controller swerve control for convenience
-        testController
-                .axisMagnitudeGreaterThan(2, Swerve.Constants.turnDeadband)
-                .or(() -> Math.hypot(testController.getLeftX(), testController.getLeftY())
-                        > Swerve.Constants.moveDeadband)
-                .onTrue(swerveCommands.drive(
-                        () -> -testController.getLeftY(),
-                        () -> -testController.getLeftX(),
-                        () -> -testController.getRightX(),
-                        () -> Swerve.Constants.swerveFieldCentric.get()));
+        if (Constants.driveEnabled) {
+            // Test controller drive control for convenience
+            testController
+                    .axisMagnitudeGreaterThan(0, Drive.Constants.turnDeadband)
+                    .or(testController.axisMagnitudeGreaterThan(1, Drive.Constants.moveDeadband))
+                    .onTrue(driveCommands.arcadeDrive(
+                            () -> -testController.getLeftY(), () -> -testController.getRightX()));
 
-        // Manual duty cycle forward test
-        testController
-                .cross()
-                .and(() -> testControllerManual.get().equals("Manual"))
-                .and(() -> testControllerChooser.get().equals("Swerve"))
-                .onTrue(swerveCommands.setSpeed(0.2, 0, 0))
-                .onFalse(swerveCommands.stop());
+            // Manual duty cycle forward test
+            testController
+                    .cross()
+                    .and(() -> testControllerManual.get().equals("Manual"))
+                    .and(() -> testControllerChooser.get().equals("Drive"))
+                    .onTrue(driveCommands.setArcadeSpeed(0.2, 0))
+                    .onFalse(driveCommands.stop());
 
-        // Manual duty cycle backward test
-        testController
-                .circle()
-                .and(() -> testControllerManual.get().equals("Manual"))
-                .and(() -> testControllerChooser.get().equals("Swerve"))
-                .onTrue(swerveCommands.setSpeed(-0.2, 0, 0))
-                .onFalse(swerveCommands.stop());
+            // Manual duty cycle backward test
+            testController
+                    .circle()
+                    .and(() -> testControllerManual.get().equals("Manual"))
+                    .and(() -> testControllerChooser.get().equals("Drive"))
+                    .onTrue(driveCommands.setArcadeSpeed(-0.2, 0))
+                    .onFalse(driveCommands.stop());
 
-        // Manual duty cycle forward test, fast
-        testController
-                .cross()
-                .and(() -> testControllerManual.get().equals("Fast"))
-                .and(() -> testControllerChooser.get().equals("Swerve"))
-                .onTrue(swerveCommands.setSpeed(1, 0, 0))
-                .onFalse(swerveCommands.stop());
+            // Manual duty cycle forward test, fast
+            testController
+                    .cross()
+                    .and(() -> testControllerManual.get().equals("Fast"))
+                    .and(() -> testControllerChooser.get().equals("Drive"))
+                    .onTrue(driveCommands.setArcadeSpeed(1, 0))
+                    .onFalse(driveCommands.stop());
 
-        // Manual duty cycle backward test, fast
-        testController
-                .circle()
-                .and(() -> testControllerManual.get().equals("Fast"))
-                .and(() -> testControllerChooser.get().equals("Swerve"))
-                .onTrue(swerveCommands.setSpeed(-1, 0, 0))
-                .onFalse(swerveCommands.stop());
+            // Manual duty cycle backward test, fast
+            testController
+                    .circle()
+                    .and(() -> testControllerManual.get().equals("Fast"))
+                    .and(() -> testControllerChooser.get().equals("Drive"))
+                    .onTrue(driveCommands.setArcadeSpeed(-1, 0))
+                    .onFalse(driveCommands.stop());
+        }
     }
 
-    // Bindings for manual control of each of the subsystems (nothing here for swerve, add other subsystems)
+    // Bindings for manual control of each of the subsystems (nothing here for drive, add other subsystems)
     public void configureManualBindings() {}
 
     // Refresh drive and manual controller disconnect alerts
@@ -343,10 +284,11 @@ public class RobotContainer {
 
     public Command getAutonomousCommand() {
         if (autoChooser.get().equals("Leave")) {
-            return swerveCommands
-                    .setPositionOutput(-2, 0)
-                    .andThen(new WaitCommand(3))
-                    .andThen(swerveCommands.setPositionOutput(0, 0));
+            // Simple auto: drive forward for 2 seconds then stop
+            return driveCommands
+                    .setArcadeSpeed(0.3, 0)
+                    .andThen(new WaitCommand(2))
+                    .andThen(driveCommands.stop());
         } else {
             Alerts.create("Unknown auto specified", AlertType.kWarning);
             return new InstantCommand();
@@ -354,7 +296,9 @@ public class RobotContainer {
     }
 
     public void periodic() {
-        publisher.publish(); // Publish 3D robot data
+        if (Constants.driveEnabled) {
+            publisher.publish(); // Publish 3D robot data
+        }
         refreshControllerAlerts(); // Enable alerts for controller disconnects
     }
 }

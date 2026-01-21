@@ -10,19 +10,19 @@ import edu.wpi.first.math.geometry.Translation2d;
 
 import org.littletonrobotics.junction.Logger;
 
-import frc.robot.subsystems.swerve.Swerve;
+import frc.robot.subsystems.drive.Drive;
 
 // Class that publishes 3D robot data to AdvantageScope
 public class RobotPublisher {
 
-    private Swerve swerve;
+    private Drive drive;
 
-    public RobotPublisher(Swerve swerve) {
-        this.swerve = swerve;
+    public RobotPublisher(Drive drive) {
+        this.drive = drive;
     }
 
     public void publish() {
-        Pose2d pos = swerve.getPose();
+        Pose2d pos = drive.getPose();
         // Rotate 180 degrees because the orientation of the robot model is wrong
         pos = pos.transformBy(new Transform2d(new Translation2d(), Rotation2d.k180deg));
         Pose3d botPos = new Pose3d(pos);
@@ -34,7 +34,6 @@ public class RobotPublisher {
         // Convert chassisPos to Pose3d, other links need relative positions
         Pose3d mainPos = new Pose3d(chassisPos.getTranslation(), chassisPos.getRotation());
 
-        // Subtract pi/2 because the arm was vertical in Fusion
-
+        // Additional mechanism poses can be added here for visualization
     }
 }
