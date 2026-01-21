@@ -13,21 +13,17 @@
             "/AdvantageKit/RealOutputs",
             "/AdvantageKit/RealOutputs/3DField",
             "/AdvantageKit/RealOutputs/3DField/Chassis",
-            "/AdvantageKit/Swerve",
             "/AdvantageKit/Swerve/BackLeft",
             "/AdvantageKit/Swerve/BackLeft/Drive",
             "/AdvantageKit",
-            "/AdvantageKit/RealOutputs/LoggedRobot",
-            "/AdvantageKit/RealOutputs/Logger",
             "/AdvantageKit/NetworkInputs",
             "/AdvantageKit/PowerDistribution",
             "/AdvantageKit/RadioStatus",
-            "/AdvantageKit/RealOutputs/CANivore",
-            "/AdvantageKit/SystemStats"
+            "/AdvantageKit/RealOutputs/Swerve"
           ]
         },
         "tabs": {
-          "selected": 1,
+          "selected": 2,
           "tabs": [
             {
               "type": 0,
@@ -114,6 +110,47 @@
               "controlsHeight": 200
             },
             {
+              "type": 9,
+              "title": "Swerve",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "states",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/States",
+                    "logType": "SwerveModuleState[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#ff0000",
+                      "arrangement": "0,1,2,3"
+                    }
+                  },
+                  {
+                    "type": "chassisSpeeds",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/ChassisSpeeds",
+                    "logType": "ChassisSpeeds",
+                    "visible": true,
+                    "options": {
+                      "color": "#0000ff"
+                    }
+                  },
+                  {
+                    "type": "rotation",
+                    "logKey": "NT:/AdvantageKit/RealOutputs/Swerve/Rotation",
+                    "logType": "Rotation2d",
+                    "visible": true,
+                    "options": {}
+                  }
+                ],
+                "maxSpeed": 5,
+                "sizeX": 0.65,
+                "sizeY": 0.65,
+                "orientation": 1
+              },
+              "controllerUUID": "1xxs899z1qkcszsmqzwthzrdhz843fq4",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
               "type": 5,
               "title": "Console",
               "controller": null,
@@ -160,14 +197,14 @@
                 "cameraIndex": -2,
                 "orbitFov": 50,
                 "cameraPosition": [
-                  -1.7469137652406808,
-                  1.4686678119995986,
-                  -3.7729906035155536
+                  0.22491711012785665,
+                  2.6780456027281443,
+                  -3.211436745081703
                 ],
                 "cameraTarget": [
-                  3.612296599021856,
-                  0.4422517984110363,
-                  -0.26342442277584827
+                  2.2243692412717806,
+                  -0.33476974519652253,
+                  1.628731753585522
                 ]
               },
               "controlsHeight": 200

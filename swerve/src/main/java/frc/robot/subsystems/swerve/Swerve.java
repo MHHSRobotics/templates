@@ -206,6 +206,8 @@ public class Swerve extends SubsystemBase {
     // Alert for no vision measurements
     private Alert noVision = new Alert("No vision measurements have been recorded yet", AlertType.kWarning);
 
+    private ChassisSpeeds lastChassisSpeeds = new ChassisSpeeds();
+
     public Swerve(GyroIO gyro, SwerveModule fl, SwerveModule fr, SwerveModule bl, SwerveModule br) {
         this.gyro = gyro;
         this.modules = new SwerveModule[] {fl, fr, bl, br};
@@ -338,7 +340,8 @@ public class Swerve extends SubsystemBase {
 
     // Tell the modules to reach a target chassis speed: vx (m/s), vy (m/s), omega (rad/s)
     private void setChassisSpeeds(ChassisSpeeds speeds) {
-        ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
+        lastChassisSpeeds = speeds;
+        ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, frc.robot.Constants.loopTime);
         SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
         SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, Constants.maxLinearSpeedMetersPerSec);
         for (int i = 0; i < 4; i++) {
@@ -545,6 +548,15 @@ public class Swerve extends SubsystemBase {
         Logger.recordOutput("Swerve/PoseRotationError", getRotationError());
         Logger.recordOutput("Swerve/PIDPosition", pidPosition);
         Logger.recordOutput("Swerve/PIDRotation", pidRotation);
+
+        SwerveModuleState[] states = new SwerveModuleState[4];
+        for (int i = 0; i < modules.length; i++) {
+            states[i] = modules[i].getState();
+        }
+        Logger.recordOutput("Swerve/States", states);
+        Logger.recordOutput("Swerve/ChassisSpeeds", lastChassisSpeeds);
+        Logger.recordOutput("Swerve/EstimatedPose", getPose());
+        Logger.recordOutput("Swerve/Rotation", getRotation());
 
         // Get measurements from all connected cameras and add them to the pose estimator
         for (CameraIO cam : cameras) {
