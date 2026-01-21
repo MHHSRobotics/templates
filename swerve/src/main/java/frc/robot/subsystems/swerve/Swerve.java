@@ -36,7 +36,6 @@ import org.littletonrobotics.junction.mechanism.LoggedMechanism2d;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
-import frc.robot.Constants.Mode;
 import frc.robot.io.CameraIO;
 import frc.robot.io.CameraIO.CameraIOInputs;
 import frc.robot.io.GyroIO;
@@ -199,15 +198,7 @@ public class Swerve extends SubsystemBase {
         this.gyro = gyro;
         this.modules = new SwerveModule[] {fl, fr, bl, br};
 
-        Pose2d initialPose;
-        if (frc.robot.Constants.currentMode != Mode.SIM) {
-            // If we're on a physical robot, initial pose estimate will be in the center of the field, since alliance
-            // probably hasn't loaded yet
-            initialPose = new Pose2d(Field.fieldLength / 2, Field.fieldWidth / 2, Rotation2d.kZero);
-        } else {
-            // If in sim, get Constants.simInitialPose and flip it on red alliance
-            initialPose = Constants.simInitialPose.get();
-        }
+        Pose2d initialPose = new Pose2d(Field.fieldLength / 2, Field.fieldWidth / 2, Rotation2d.kZero);
 
         estimator = new SwerveDrivePoseEstimator(
                 kinematics,

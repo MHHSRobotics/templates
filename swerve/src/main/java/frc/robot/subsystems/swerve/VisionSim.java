@@ -10,10 +10,10 @@ import org.photonvision.simulation.VisionSystemSim;
 
 public class VisionSim extends SubsystemBase {
     private VisionSystemSim visionSim;
-    private Swerve swerve;
+    private SwerveSim swerveSim;
 
-    public VisionSim(List<CameraIO> cameras, Swerve swerve) {
-        this.swerve = swerve;
+    public VisionSim(List<CameraIO> cameras, SwerveSim swerveSim) {
+        this.swerveSim = swerveSim;
         visionSim = new VisionSystemSim("main");
         visionSim.addAprilTags(Field.layout);
 
@@ -24,6 +24,6 @@ public class VisionSim extends SubsystemBase {
 
     @Override
     public void periodic() {
-        visionSim.update(swerve.getPose());
+        visionSim.update(swerveSim.getPhysicalPose());
     }
 }

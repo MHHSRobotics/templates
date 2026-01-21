@@ -27,6 +27,7 @@ import frc.robot.subsystems.swerve.GyroSim;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveModule;
 import frc.robot.subsystems.swerve.SwerveModuleSim;
+import frc.robot.subsystems.swerve.SwerveSim;
 import frc.robot.subsystems.swerve.TunerConstants;
 import frc.robot.subsystems.swerve.VisionSim;
 import frc.robot.util.Alerts;
@@ -185,41 +186,45 @@ public class RobotContainer {
 
             swerve = new Swerve(gyro, fl, fr, bl, br); // Initialize swerve subsystem
 
+            if (Constants.visionEnabled) {
+                // Create camera variables
+                CameraIO brat;
+                CameraIO blat;
+                switch (Constants.currentMode) {
+                    case REAL:
+                    case SIM:
+                        // If in real bot or sim, use CameraIOPhotonCamera
+                        brat = new CameraIOPhotonCamera(
+                                "BackRight_AT", "Vision/BRAT", Swerve.VisionConstants.bratPose, 60);
+                        blat = new CameraIOPhotonCamera(
+                                "BackLeft_AT", "Vision/BLAT", Swerve.VisionConstants.blatPose, 60);
+                        break;
+                    default:
+                        // If in replay use an empty CameraIO
+                        brat = new CameraIO("BackRight_AT", "Vision/BRAT");
+                        blat = new CameraIO("BackLeft_AT", "Vision/BLAT");
+                        break;
+                }
+                // Add cameras to swerve ododmetry
+                swerve.addCameraSource(brat);
+                swerve.addCameraSource(blat);
+            }
+
             // If mode is SIM, start the simulations for swerve modules and gyro
             if (Constants.currentMode == Mode.SIM) {
-                new SwerveModuleSim(flDriveMotor, flAngleMotor, flEncoder, TunerConstants.FrontLeft);
-                new SwerveModuleSim(frDriveMotor, frAngleMotor, frEncoder, TunerConstants.FrontRight);
-                new SwerveModuleSim(blDriveMotor, blAngleMotor, blEncoder, TunerConstants.BackLeft);
-                new SwerveModuleSim(brDriveMotor, brAngleMotor, brEncoder, TunerConstants.BackRight);
+                SwerveModuleSim[] moduleSims = new SwerveModuleSim[] {
+                    new SwerveModuleSim(flDriveMotor, flAngleMotor, flEncoder, TunerConstants.FrontLeft),
+                    new SwerveModuleSim(frDriveMotor, frAngleMotor, frEncoder, TunerConstants.FrontRight),
+                    new SwerveModuleSim(blDriveMotor, blAngleMotor, blEncoder, TunerConstants.BackLeft),
+                    new SwerveModuleSim(brDriveMotor, brAngleMotor, brEncoder, TunerConstants.BackRight)
+                };
 
-                new GyroSim(gyro);
-            }
-        }
+                SwerveSim swerveSim = new SwerveSim(moduleSims);
 
-        // Initialize cameras
-        if (Constants.swerveEnabled && Constants.visionEnabled) {
-            // Create camera variables
-            CameraIO brat;
-            CameraIO blat;
-            switch (Constants.currentMode) {
-                case REAL:
-                case SIM:
-                    // If in real bot or sim, use CameraIOPhotonCamera
-                    brat = new CameraIOPhotonCamera("BackRight_AT", "Vision/BRAT", Swerve.VisionConstants.bratPose, 60);
-                    blat = new CameraIOPhotonCamera("BackLeft_AT", "Vision/BLAT", Swerve.VisionConstants.blatPose, 60);
-                    break;
-                default:
-                    // If in replay use an empty CameraIO
-                    brat = new CameraIO("BackRight_AT", "Vision/BRAT");
-                    blat = new CameraIO("BackLeft_AT", "Vision/BLAT");
-                    break;
-            }
-            // Add cameras to swerve ododmetry
-            swerve.addCameraSource(brat);
-            swerve.addCameraSource(blat);
-            // If in sim, add the vision simulator
-            if (Constants.currentMode == Mode.SIM) {
-                new VisionSim(swerve.getCameras(), swerve);
+                new GyroSim(gyro, swerveSim);
+                if (Constants.visionEnabled) {
+                    new VisionSim(swerve.getCameras(), swerveSim);
+                }
             }
         }
     }

@@ -1,5 +1,7 @@
 package frc.robot.subsystems.swerve;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -9,6 +11,7 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 
+import frc.robot.Constants;
 import frc.robot.io.EncoderIO;
 import frc.robot.io.MotorIO;
 
@@ -39,13 +42,20 @@ public class SwerveModuleSim extends SubsystemBase {
                 steerGearbox);
     }
 
+    // Gets the speed and angle of this simulated swerve module
+    public SwerveModuleState getState() {
+        return new SwerveModuleState(
+                driveMech.getAngularVelocityRadPerSec() * TunerConstants.FrontLeft.WheelRadius,
+                Rotation2d.fromRadians(steerMech.getAngularPositionRad()));
+    }
+
     @Override
     public void periodic() {
         driveMech.setInputVoltage(driveMotor.getInputs().appliedVoltage);
         steerMech.setInputVoltage(steerMotor.getInputs().appliedVoltage);
 
-        driveMech.update(0.02);
-        steerMech.update(0.02);
+        driveMech.update(Constants.loopTime);
+        steerMech.update(Constants.loopTime);
 
         driveMotor.setMechPosition(driveMech.getAngularPositionRad());
         driveMotor.setMechVelocity(driveMech.getAngularVelocityRadPerSec());
