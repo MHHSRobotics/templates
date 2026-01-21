@@ -93,6 +93,9 @@ public class MotorIOSparkMax extends MotorIO {
     private double prevVelocity = 0;
     private double prevVelocitySetpoint = 0;
 
+    // Whether the motor has been manually disconnected
+    private boolean disconnected = false;
+
     // Make a SparkMax with brushless motor (NEO)
     public MotorIOSparkMax(int id, String name, String logPath) {
         this(id, MotorType.kBrushless, name, logPath);
@@ -131,7 +134,7 @@ public class MotorIOSparkMax extends MotorIO {
         Faults faults = motor.getStickyFaults();
 
         // SparkMax doesn't have a direct "isConnected" method, check CAN fault
-        inputs.connected = !faults.can;
+        inputs.connected = disconnected ? false : !faults.can;
 
         // Get position/velocity from motor's built-in encoder
         double rawPosition = motor.getEncoder().getPosition(); // rotations
@@ -507,5 +510,14 @@ public class MotorIOSparkMax extends MotorIO {
             motorRPM = inverted ? -motorRPM : motorRPM;
             encoderSim.setVelocity(motorRPM);
         }
+    }
+
+    @Override
+    public void disconnect() {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method disconnect on " + getName(), AlertType.kWarning);
+            return;
+        }
+        disconnected = true;
     }
 }

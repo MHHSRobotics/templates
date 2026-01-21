@@ -23,17 +23,28 @@ public class CameraIOPhotonCamera extends CameraIO {
     private Transform3d robotToCamera;
 
     private double fov;
+    private int resWidth, resHeight;
 
-    public CameraIOPhotonCamera(String name, String logPath, Transform3d robotToCamera, double fov) {
+    private boolean disconnected = false;
+
+    public CameraIOPhotonCamera(
+            String name, String logPath, Transform3d robotToCamera, double fov, int resWidth, int resHeight) {
         super(name, logPath);
         cam = new PhotonCamera(name);
         this.robotToCamera = robotToCamera;
         this.fov = fov;
+        this.resWidth = resWidth;
+        this.resHeight = resHeight;
+    }
+
+    // Camera resolution defaults to 320x240
+    public CameraIOPhotonCamera(String name, String logPath, Transform3d robotToCamera, double fov) {
+        this(name, logPath, robotToCamera, fov, 320, 240);
     }
 
     @Override
     public void update() {
-        inputs.connected = cam.isConnected();
+        inputs.connected = disconnected ? false : cam.isConnected();
         inputs.measurements = 0;
 
         var unreadResults = cam.getAllUnreadResults();
@@ -86,7 +97,7 @@ public class CameraIOPhotonCamera extends CameraIO {
         // Config for the camera sim
         SimCameraProperties cameraProp = new SimCameraProperties();
         // 640x480 input with 80 degree FOV
-        cameraProp.setCalibration(320, 240, Rotation2d.fromDegrees(fov));
+        cameraProp.setCalibration(resWidth, resHeight, Rotation2d.fromDegrees(fov));
         // 50 FPS
         cameraProp.setFPS(50);
         // Latency of 35ms with standard deviation of 5ms
@@ -97,5 +108,14 @@ public class CameraIOPhotonCamera extends CameraIO {
         visionSim.addCamera(cameraSim, robotToCamera);
 
         cameraSim.enableDrawWireframe(true);
+    }
+
+    @Override
+    public void disconnect() {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method disconnect on " + getName(), AlertType.kWarning);
+            return;
+        }
+        disconnected = true;
     }
 }

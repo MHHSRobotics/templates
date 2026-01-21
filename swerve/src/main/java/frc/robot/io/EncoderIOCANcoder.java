@@ -58,6 +58,8 @@ public class EncoderIOCANcoder extends EncoderIO {
     private int id;
     private CANBus canBus;
 
+    private boolean disconnected = false;
+
     public EncoderIOCANcoder(int id, CANBus canBus, String name, String logPath) {
         super(name, logPath);
         encoder = new CANcoder(id, canBus);
@@ -97,7 +99,7 @@ public class EncoderIOCANcoder extends EncoderIO {
             encoder.getConfigurator().apply(config);
         }
 
-        inputs.connected = encoder.isConnected();
+        inputs.connected = disconnected ? false : encoder.isConnected();
 
         // Position calculation pipeline:
         // 1. CANcoder returns absolute position in encoder rotations (with MagnetOffset already applied)
@@ -228,5 +230,14 @@ public class EncoderIOCANcoder extends EncoderIO {
                 ? -encoderVel
                 : encoderVel;
         sim.setVelocity(encoderVel);
+    }
+
+    @Override
+    public void disconnect() {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method disconnect on " + getName(), AlertType.kWarning);
+            return;
+        }
+        disconnected = true;
     }
 }

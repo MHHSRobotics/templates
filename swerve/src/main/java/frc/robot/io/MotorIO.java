@@ -352,4 +352,9 @@ public class MotorIO {
     public void setMechVelocity(double velocity) {
         unsupportedFeature();
     }
+
+    // Disconnects the motor. Simulation-only.
+    public void disconnect() {
+        unsupportedFeature();
+    }
 }

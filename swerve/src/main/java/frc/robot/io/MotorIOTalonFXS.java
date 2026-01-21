@@ -68,6 +68,8 @@ public class MotorIOTalonFXS extends MotorIO {
     private VelocityTorqueCurrentFOC velocityCurrent = new VelocityTorqueCurrentFOC(0);
     private Follower follow = new Follower(0, MotorAlignmentValue.Aligned);
 
+    private boolean disconnected = false;
+
     private enum ControlType {
         COAST,
         BRAKE,
@@ -129,7 +131,7 @@ public class MotorIOTalonFXS extends MotorIO {
         }
 
         // Update all input values from the motor signals
-        inputs.connected = motor.isConnected();
+        inputs.connected = disconnected ? false : motor.isConnected();
 
         // Convert rotations to radians for mechanism units
         inputs.position = Units.rotationsToRadians(motor.getPosition().getValueAsDouble()) - extraOffset;
@@ -631,5 +633,14 @@ public class MotorIOTalonFXS extends MotorIO {
                 velocity * config.ExternalFeedback.RotorToSensorRatio * config.ExternalFeedback.SensorToMechanismRatio);
         rotorVel = config.MotorOutput.Inverted.equals(InvertedValue.Clockwise_Positive) ? -rotorVel : rotorVel;
         sim.setRotorVelocity(rotorVel);
+    }
+
+    @Override
+    public void disconnect() {
+        if (Constants.currentMode == Mode.REAL) {
+            Alerts.create("Used sim-only method disconnect on " + getName(), AlertType.kWarning);
+            return;
+        }
+        disconnected = true;
     }
 }

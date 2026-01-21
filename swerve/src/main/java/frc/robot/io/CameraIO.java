@@ -73,4 +73,9 @@ public class CameraIO {
     public void startSim(VisionSystemSim sim) {
         unsupportedFeature();
     }
+
+    // Disconnect the camera, simulation-only.
+    public void disconnect() {
+        unsupportedFeature();
+    }
 }

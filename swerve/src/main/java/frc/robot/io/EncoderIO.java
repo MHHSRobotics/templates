@@ -87,4 +87,9 @@ public class EncoderIO {
     public void setMechVelocity(double velocity) {
         unsupportedFeature();
     }
+
+    // Disconnect the encoder. Simulation-only.
+    public void disconnect() {
+        unsupportedFeature();
+    }
 }
