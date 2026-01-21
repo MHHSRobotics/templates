@@ -242,8 +242,14 @@ public class RobotContainer {
         if (Constants.swerveEnabled) {
             controller.create().onTrue(swerveCommands.resetGyro());
 
-            CommandScheduler.getInstance()
-                    .schedule(swerveCommands.drive(
+            /*
+             * How this works:
+             * When the driver controller is outside of its deadband, it runs swerveCommands.drive(), which overrides auto align commands. swerveCommands.drive() will continue to run until an auto align command is executed, so the swerve drive will stop when both sticks are at 0.
+             */
+            controller
+                    .axisMagnitudeGreaterThan(2, Swerve.Constants.turnDeadband)
+                    .or(() -> Math.hypot(controller.getLeftX(), controller.getLeftY()) > Swerve.Constants.moveDeadband)
+                    .onTrue(swerveCommands.drive(
                             () -> -controller.getLeftY(),
                             () -> -controller.getLeftX(),
                             () -> -controller.getRightX(),
@@ -270,8 +276,11 @@ public class RobotContainer {
         testControllerManual.addOption("Fast", "Fast");
 
         // Test controller swerve control for convenience
-        CommandScheduler.getInstance()
-                .schedule(swerveCommands.drive(
+        testController
+                .axisMagnitudeGreaterThan(2, Swerve.Constants.turnDeadband)
+                .or(() -> Math.hypot(testController.getLeftX(), testController.getLeftY())
+                        > Swerve.Constants.moveDeadband)
+                .onTrue(swerveCommands.drive(
                         () -> -testController.getLeftY(),
                         () -> -testController.getLeftX(),
                         () -> -testController.getRightX(),
