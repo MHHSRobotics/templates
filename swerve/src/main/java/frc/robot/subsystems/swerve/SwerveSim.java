@@ -1,6 +1,7 @@
 package frc.robot.subsystems.swerve;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -32,6 +33,11 @@ public class SwerveSim extends SubsystemBase {
         SwerveModuleState[] states = new SwerveModuleState[4];
         for (int i = 0; i < 4; i++) {
             states[i] = moduleSims[i].getState();
+
+            states[i].angle = states[i].angle.plus(Rotation2d.fromRotations(
+                    (Math.random() * 2 - 1) * Constants.simSwerveError)); // Random angle error for simulation
+            states[i].speedMetersPerSecond *=
+                    (1 + (Math.random() * 2 - 1) * Constants.simSwerveError); // Random speed error for simulation
         }
         ChassisSpeeds speeds = kinematics.toChassisSpeeds(states);
         Twist2d twist = speeds.toTwist2d(Constants.loopTime);
