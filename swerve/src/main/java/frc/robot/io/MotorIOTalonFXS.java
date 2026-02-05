@@ -544,7 +544,6 @@ public class MotorIOTalonFXS extends MotorIO {
                 || config.ExternalFeedback.ExternalFeedbackSensorSource
                         == ExternalFeedbackSensorSourceValue.RemoteCANcoder) {
             connectedEncoder.setOffset(offset);
-            extraOffset = connectedEncoder.getExtraOffset();
         } else {
             Alerts.create("Invalid sensor source for TalonFXS " + getName(), AlertType.kError);
         }

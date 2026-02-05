@@ -32,7 +32,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.mechanism.LoggedMechanism2d;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
@@ -112,26 +111,30 @@ public class Swerve extends SubsystemBase {
         public static final LoggedNetworkNumber steerKA = new LoggedNetworkNumber("Swerve/SteerKA", 0);
 
         // Auto align translation PID
-        public static final LoggedNetworkNumber translationkP = new LoggedNetworkNumber("Swerve/TransKP", 2);
-        public static final LoggedNetworkNumber translationkD = new LoggedNetworkNumber("Swerve/TransKD", 0);
-        public static final LoggedNetworkNumber translationkI = new LoggedNetworkNumber("Swerve/TransKI", 0);
+        public static final LoggedNetworkNumber translationKP = new LoggedNetworkNumber("Swerve/TransKP", 2);
+        public static final LoggedNetworkNumber translationKD = new LoggedNetworkNumber("Swerve/TransKD", 0);
+        public static final LoggedNetworkNumber translationKI = new LoggedNetworkNumber("Swerve/TransKI", 0);
 
         // Auto align rotation PID
-        public static final LoggedNetworkNumber rotationkP = new LoggedNetworkNumber("Swerve/RotKP", 0.4);
-        public static final LoggedNetworkNumber rotationkD = new LoggedNetworkNumber("Swerve/RotKD", 0);
-        public static final LoggedNetworkNumber rotationkI = new LoggedNetworkNumber("Swerve/RotKI", 0);
+        public static final LoggedNetworkNumber rotationKP = new LoggedNetworkNumber("Swerve/RotKP", 0.4);
+        public static final LoggedNetworkNumber rotationKD = new LoggedNetworkNumber("Swerve/RotKD", 0);
+        public static final LoggedNetworkNumber rotationKI = new LoggedNetworkNumber("Swerve/RotKI", 0);
+
+        public static final double simSwerveError = 0; // Simulated error in swerve odometry, set to 0 for no error
     }
 
     public static class VisionConstants {
         // Vision standard deviation tuning constants
+        // Single-tag measurements have higher uncertainty than multi-tag
         // Base XY standard deviation in meters (tune based on testing)
-        public static final double visionXYStdDevBase = 0.5;
-        // XY standard deviation multiplier based on distance squared
-        public static final double visionXYStdDevDistanceMultiplier = 0.1;
-        // Base theta standard deviation in radians
-        public static final double visionThetaStdDevBase = 0.5;
-        // Theta standard deviation multiplier based on distance
-        public static final double visionThetaStdDevDistanceMultiplier = 0.2;
+        public static final double singleTagXYStdDev = 0.4;
+        public static final double multiTagXYStdDev = 0.1;
+        // Base theta standard deviation in radians (trust gyro more than vision for heading)
+        public static final double singleTagThetaStdDev = 0.5;
+        public static final double multiTagThetaStdDev = 0.25;
+        // Distance-based scaling multipliers
+        public static final double visionXYStdDevDistanceMultiplier = 0.1; // multiplied by distance²
+        public static final double visionThetaStdDevDistanceMultiplier = 0.2; // multiplied by distance
 
         public static final Transform3d bratPose = new Transform3d(
                 new Translation3d(-0.193, -0.288, 0.31), new Rotation3d(0, 0, Units.degreesToRadians(200)));
@@ -159,9 +162,6 @@ public class Swerve extends SubsystemBase {
     private SwerveDrivePoseEstimator estimator;
 
     private List<CameraIO> cameras = new ArrayList<>();
-
-    // On-screen drawing of the drive to show module directions and speeds
-    private final LoggedMechanism2d mech = new LoggedMechanism2d(3, 3);
 
     // Holonomic controller for auto-align
     private final PIDController xController;
@@ -208,13 +208,13 @@ public class Swerve extends SubsystemBase {
 
         // Initialize PID controllers for auto align
         xController = new PIDController(
-                Constants.translationkP.get(), Constants.translationkI.get(), Constants.translationkD.get());
+                Constants.translationKP.get(), Constants.translationKI.get(), Constants.translationKD.get());
         yController = new PIDController(
-                Constants.translationkP.get(), Constants.translationkI.get(), Constants.translationkD.get());
+                Constants.translationKP.get(), Constants.translationKI.get(), Constants.translationKD.get());
         thetaController = new ProfiledPIDController(
-                Constants.rotationkP.get(),
-                Constants.rotationkI.get(),
-                Constants.rotationkD.get(),
+                Constants.rotationKP.get(),
+                Constants.rotationKI.get(),
+                Constants.rotationKD.get(),
                 new Constraints(10, 10));
 
         // Set wraparound on theta controller
@@ -392,21 +392,19 @@ public class Swerve extends SubsystemBase {
         // Distance from current pose to vision measurement
         double distance = getPose().getTranslation().getDistance(visionPose.getTranslation());
 
-        // Base standard deviations (increases with distance)
-        double xyStdDev = VisionConstants.visionXYStdDevBase
-                + (distance * distance * VisionConstants.visionXYStdDevDistanceMultiplier);
-        double thetaStdDev = VisionConstants.visionThetaStdDevBase
-                + (distance * VisionConstants.visionThetaStdDevDistanceMultiplier);
+        // Select base standard deviations based on tag count
+        // Multi-tag measurements are geometrically constrained and more reliable
+        double xyStdDevBase = tagCount > 1 ? VisionConstants.multiTagXYStdDev : VisionConstants.singleTagXYStdDev;
+        double thetaStdDevBase =
+                tagCount > 1 ? VisionConstants.multiTagThetaStdDev : VisionConstants.singleTagThetaStdDev;
+
+        // Apply distance-based scaling (XY uses distance², theta uses distance)
+        double xyStdDev = xyStdDevBase + (distance * distance * VisionConstants.visionXYStdDevDistanceMultiplier);
+        double thetaStdDev = thetaStdDevBase + (distance * VisionConstants.visionThetaStdDevDistanceMultiplier);
 
         // Scale by ambiguity (higher ambiguity = less trust)
         xyStdDev *= (1 + ambiguity);
         thetaStdDev *= (1 + ambiguity);
-
-        // Multi-tag measurements are more reliable
-        if (tagCount > 1) {
-            xyStdDev /= Math.sqrt(tagCount);
-            thetaStdDev /= Math.sqrt(tagCount);
-        }
 
         return VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
     }
@@ -428,8 +426,8 @@ public class Swerve extends SubsystemBase {
 
     // Gets rotation error to the goal in radians
     public double getRotationError() {
-        return Math.abs(getPose().getRotation().getRadians()
-                - targetPose.get().getRotation().getRadians());
+        return Math.abs(
+                getPose().getRotation().minus(targetPose.get().getRotation()).getRadians());
     }
 
     @Override
@@ -443,45 +441,27 @@ public class Swerve extends SubsystemBase {
         }
 
         // Update PID controllers
-        xController.setP(Constants.translationkP.get());
-        yController.setP(Constants.translationkP.get());
-        thetaController.setP(Constants.rotationkP.get());
+        xController.setP(Constants.translationKP.get());
+        yController.setP(Constants.translationKP.get());
+        thetaController.setP(Constants.rotationKP.get());
 
-        xController.setD(Constants.translationkD.get());
-        yController.setD(Constants.translationkD.get());
-        thetaController.setD(Constants.rotationkD.get());
+        xController.setD(Constants.translationKD.get());
+        yController.setD(Constants.translationKD.get());
+        thetaController.setD(Constants.rotationKD.get());
 
-        xController.setI(Constants.translationkI.get());
-        yController.setI(Constants.translationkI.get());
-        thetaController.setI(Constants.rotationkI.get());
-
-        for (SwerveModule module : modules) {
-            // Update drive motor PID
-            module.setDriveKP(Constants.driveKP.get());
-            module.setDriveKI(Constants.driveKI.get());
-            module.setDriveKD(Constants.driveKD.get());
-            module.setDriveKS(Constants.driveKS.get());
-            module.setDriveKV(Constants.driveKV.get());
-            module.setDriveKA(Constants.driveKA.get());
-
-            // Update steer motor PID
-            module.setAngleKP(Constants.steerKP.get());
-            module.setAngleKI(Constants.steerKI.get());
-            module.setAngleKD(Constants.steerKD.get());
-            module.setAngleKS(Constants.steerKS.get());
-            module.setAngleKV(Constants.steerKV.get());
-            module.setAngleKA(Constants.steerKA.get());
-        }
+        xController.setI(Constants.translationKI.get());
+        yController.setI(Constants.translationKI.get());
+        thetaController.setI(Constants.rotationKI.get());
 
         double xSpeed = 0, ySpeed = 0;
 
         // Set swerve module targets depending on current settings
         if (locked) {
-            Rotation2d[] headings = new Rotation2d[4];
+            // Point each module toward the robot center (creates X pattern that resists pushing)
             for (int i = 0; i < 4; i++) {
-                headings[i] = getModuleTranslations()[i].getAngle();
+                Rotation2d lockAngle = getModuleTranslations()[i].getAngle();
+                modules[i].runSetpoint(new SwerveModuleState(0, lockAngle));
             }
-            kinematics.resetHeadings(headings);
         } else {
 
             boolean positionFieldOriented = true;
@@ -540,7 +520,7 @@ public class Swerve extends SubsystemBase {
         for (CameraIO cam : cameras) {
             cam.update();
             CameraIOInputs inputs = cam.getInputs();
-            for (int i = 0; i < inputs.measurements; i++) {
+            for (int i = 0; i < inputs.poses.length; i++) {
                 Matrix<N3, N1> stdDevs =
                         calculateVisionStdDevs(inputs.poses[i].toPose2d(), inputs.ambiguities[i], inputs.tagCounts[i]);
                 addVisionMeasurement(inputs.poses[i].toPose2d(), inputs.poseTimestamps[i], stdDevs);
@@ -561,8 +541,6 @@ public class Swerve extends SubsystemBase {
         }
         // Feed odometry to the pose estimator (time, heading, and wheel distances)
         estimator.updateWithTime(RobotController.getFPGATime() / 1000000., gyroAngle, getModulePositions());
-
-        Logger.recordOutput("Swerve/Visualization", mech);
 
         // Update field pose
         field.setRobotPose(getPose());

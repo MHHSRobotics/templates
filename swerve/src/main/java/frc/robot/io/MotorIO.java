@@ -298,13 +298,18 @@ public class MotorIO {
 
     // Tell the motor to use its internal sensor with a gear ratio to the mechanism (unitless). Don't call both this and
     // connectEncoder.
-    public void setGearRatio(double gearRatio) {
+    public void connectInternalSensor(double gearRatio) {
         unsupportedFeature();
     }
 
-    // Tell the motor the absolute offset of the mechanism zero (radians). Do this AFTER connecting the encoder and the
-    // GravityType.
+    // Tell the motor the absolute offset of the mechanism zero (radians). Do this AFTER connecting the encoder.
     public void setOffset(double offset) {
+        unsupportedFeature();
+    }
+
+    // Directly sets the position of the motor sensor. Use for when no encoder is available. TalonFX automatically sets
+    // position to 0 on startup, so you don't need to do that.
+    public void setPosition(double position) {
         unsupportedFeature();
     }
 

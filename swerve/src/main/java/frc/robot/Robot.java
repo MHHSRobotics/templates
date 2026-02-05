@@ -28,6 +28,7 @@ import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
+import com.revrobotics.util.StatusLogger;
 import frc.robot.Constants.Mode;
 import frc.robot.util.Alerts;
 
@@ -87,6 +88,9 @@ public class Robot extends LoggedRobot {
 
         // Disable automatic Hoot logging
         SignalLogger.enableAutoLogging(false);
+
+        // Disable automatic REV logging
+        StatusLogger.disableAutoLogging();
 
         // Adjust loop overrun warning timeout
         try {

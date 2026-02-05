@@ -34,7 +34,7 @@ public class SwerveModule {
         angleEncoder = angleEncoderIO;
 
         driveMotor.setBraking(true);
-        driveMotor.setGearRatio(constants.DriveMotorGearRatio);
+        driveMotor.connectInternalSensor(constants.DriveMotorGearRatio);
         driveMotor.setStatorCurrentLimit(constants.SlipCurrent);
         driveMotor.setInverted(constants.DriveMotorInverted);
 
@@ -44,8 +44,8 @@ public class SwerveModule {
         angleMotor.connectEncoder(angleEncoder, constants.SteerMotorGearRatio);
         angleMotor.setContinuousWrap(true);
         angleMotor.setInverted(constants.SteerMotorInverted);
-        angleMotor.setOffset(Units.rotationsToRadians(
-                -constants.EncoderOffset)); // Fix encoder zero position (convert from rotations to radians)
+        angleMotor.setOffset(-Units.rotationsToRadians(
+                constants.EncoderOffset)); // Fix encoder zero position (convert from rotations to radians)
     }
 
     // Sets whether the drive and angle motors should brake
@@ -121,9 +121,9 @@ public class SwerveModule {
         // Convert robot speed (m/s) to wheel spin speed (rad/s) using wheel size
         setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius);
 
-        if (state.speedMetersPerSecond != 0) {
-            setAnglePosition(state.angle.getRadians());
-        }
+        // if (state.speedMetersPerSecond != 0) {
+        setAnglePosition(state.angle.getRadians());
+        // }
     }
 
     // Special test mode for measuring how the robot moves
@@ -173,12 +173,14 @@ public class SwerveModule {
 
         // Update gains
         driveMotor.setkP(Swerve.Constants.driveKP.get());
+        driveMotor.setkI(Swerve.Constants.driveKI.get());
         driveMotor.setkD(Swerve.Constants.driveKD.get());
         driveMotor.setkS(Swerve.Constants.driveKS.get());
         driveMotor.setkV(Swerve.Constants.driveKV.get());
         driveMotor.setkA(Swerve.Constants.driveKA.get());
 
         angleMotor.setkP(Swerve.Constants.steerKP.get());
+        angleMotor.setkI(Swerve.Constants.steerKI.get());
         angleMotor.setkD(Swerve.Constants.steerKD.get());
         angleMotor.setkS(Swerve.Constants.steerKS.get());
         angleMotor.setkV(Swerve.Constants.steerKV.get());
@@ -189,53 +191,5 @@ public class SwerveModule {
 
         // Update current position
         currentPosition = new SwerveModulePosition(getPositionMeters(), Rotation2d.fromRadians(getAngle()));
-    }
-
-    public void setDriveKP(double kP) {
-        driveMotor.setkP(kP);
-    }
-
-    public void setDriveKI(double kI) {
-        driveMotor.setkI(kI);
-    }
-
-    public void setDriveKD(double kD) {
-        driveMotor.setkD(kD);
-    }
-
-    public void setDriveKS(double kS) {
-        driveMotor.setkS(kS);
-    }
-
-    public void setDriveKV(double kV) {
-        driveMotor.setkV(kV);
-    }
-
-    public void setDriveKA(double kA) {
-        driveMotor.setkA(kA);
-    }
-
-    public void setAngleKP(double kP) {
-        angleMotor.setkP(kP);
-    }
-
-    public void setAngleKI(double kI) {
-        angleMotor.setkI(kI);
-    }
-
-    public void setAngleKD(double kD) {
-        angleMotor.setkD(kD);
-    }
-
-    public void setAngleKS(double kS) {
-        angleMotor.setkS(kS);
-    }
-
-    public void setAngleKV(double kV) {
-        angleMotor.setkV(kV);
-    }
-
-    public void setAngleKA(double kA) {
-        angleMotor.setkA(kA);
     }
 }

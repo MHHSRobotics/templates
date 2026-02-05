@@ -76,6 +76,10 @@ public class EncoderIO {
         unsupportedFeature();
     }
 
+    public void setPosition(double position) {
+        unsupportedFeature();
+    }
+
     public void setInverted(boolean inverted) {
         unsupportedFeature();
     }

@@ -47,11 +47,14 @@ public class EncoderIOCANcoder extends EncoderIO {
     private double encoderRatio = 1;
 
     /**
-     * Software offset applied after unit conversion, in mechanism units.
-     * Ideally this is a multiple of 2π to preserve periodicity for arm gravity compensation.
-     * Non-multiple values trigger a warning as they may break gravity compensation assumptions.
+     * Tracks the offset applied via setOffset() for simulation purposes.
+     * When setOffset() calls encoder.setPosition(), it creates an internal offset in the CANcoder.
+     * We need to account for this when setting simulated positions via setRawPosition().
+     *
+     * The relationship is: reportedPosition = rawPosition - simOffset (for non-inverted)
+     * So to achieve a target reportedPosition: rawPosition = target + simOffset
      */
-    private double extraOffset;
+    private double simOffset = 0;
 
     private CANcoderSimState sim;
 
@@ -84,10 +87,6 @@ public class EncoderIOCANcoder extends EncoderIO {
         return encoderRatio;
     }
 
-    public double getExtraOffset() {
-        return extraOffset;
-    }
-
     public CANBus getCANBus() {
         return canBus;
     }
@@ -102,12 +101,10 @@ public class EncoderIOCANcoder extends EncoderIO {
         inputs.connected = disconnected ? false : encoder.isConnected();
 
         // Position calculation pipeline:
-        // 1. CANcoder returns absolute position in encoder rotations (with MagnetOffset already applied)
+        // 1. CANcoder returns position in encoder rotations (with offset already applied)
         // 2. Convert to encoder radians: enc_rot * 2π
         // 3. Apply gear ratio to get mechanism units: (enc_rot * 2π) / encoderRatio
-        // 4. Subtract software offset: final_pos = converted_pos - extraOffset
-        inputs.positionRad =
-                Units.rotationsToRadians(encoder.getAbsolutePosition().getValueAsDouble()) / encoderRatio - extraOffset;
+        inputs.positionRad = Units.rotationsToRadians(encoder.getPosition().getValueAsDouble()) / encoderRatio;
         inputs.velocityRadPerSec =
                 Units.rotationsToRadians(encoder.getVelocity().getValueAsDouble()) / encoderRatio;
 
@@ -132,46 +129,27 @@ public class EncoderIOCANcoder extends EncoderIO {
     /**
      * Sets the offset of the encoder in mechanism radians.
      *
-     * OFFSET SPLITTING ALGORITHM:
-     * 1. Convert mechanism offset to encoder rotations: mechOffset * encoderRatio / 2π
-     * 2. Split into integer and fractional parts
-     * 3. Try to put fractional part into MagnetOffset (if it fits within ±1 rotation)
-     * 4. Put the remainder (integer rotations) into extraOffset
-     *
-     * This ensures maximum use of hardware offset while keeping extraOffset as multiples of 2π when possible.
-     *
      * @param mechOffset Desired offset in mechanism radians
      */
     @Override
     public void setOffset(double mechOffset) {
-        // Convert mechanism offset to mech rotations
-        double rotOffset = Units.radiansToRotations(mechOffset);
+        // Convert mechanism offset to encoder rotations
+        double rotOffset = Units.radiansToRotations(mechOffset * encoderRatio);
 
-        // Wrap to [-0.5, 0.5] range to find the fractional rotation part
-        double remOffset = rotOffset - Math.round(rotOffset);
+        encoder.setPosition(encoder.getAbsolutePosition().getValueAsDouble() - rotOffset);
 
-        double magnetOffset = remOffset * encoderRatio;
+        // Track offset for simulation - see simOffset field documentation
+        simOffset = rotOffset;
+    }
 
-        if (Math.abs(magnetOffset) <= 1) {
-            // IDEAL CASE: We can use MagnetOffset for the fractional part
-            // MagnetOffset handles the fractional rotation (in encoder rotations)
-            config.MagnetSensor.MagnetOffset = -magnetOffset;
+    @Override
+    public void setPosition(double mechPos) {
+        double actualPos = Units.radiansToRotations(mechPos * encoderRatio);
 
-            // extraOffset handles the integer rotations (converted back to mechanism radians)
-            // This will be a multiple of 2π, preserving periodicity
-            extraOffset = Units.rotationsToRadians(rotOffset - remOffset);
-        } else {
-            // FALLBACK CASE: If we can't fit in MagnetOffset, put entire offset in software
-            config.MagnetSensor.MagnetOffset = 0;
-            extraOffset = mechOffset;
+        encoder.setPosition(actualPos);
 
-            // Warn because non-2π multiples in extraOffset break gravity compensation assumptions
-            Alerts.create(
-                    "extraOffset is not a multiple of 2pi--if " + getName()
-                            + " is used in an arm mechanism, kG will not account for gravity correctly",
-                    AlertType.kWarning);
-        }
-        configChanged = true;
+        // Direct position set clears offset tracking
+        simOffset = 0;
     }
 
     /**
@@ -189,7 +167,15 @@ public class EncoderIOCANcoder extends EncoderIO {
      * Sets the simulated mechanism position.
      * Reverses the calculation from update() to determine what encoder position produces the desired mechanism position.
      *
-     * @param position Desired mechanism position in mech units
+     * <p>Phoenix 6 simulation note: The SimState API ignores device invert settings.
+     * Inversion is applied when reading via getPosition(), not when setting raw position.
+     * So for inverted encoders, we must negate the raw position we set.
+     *
+     * <p>Offset handling: When setOffset() is called, it uses encoder.setPosition() which creates
+     * an internal offset. The relationship becomes: reportedPosition = rawPosition - simOffset
+     * (for non-inverted). We account for this by adding simOffset to our target.
+     *
+     * @param position Desired mechanism position in mechanism radians
      */
     @Override
     public void setMechPosition(double position) {
@@ -197,24 +183,32 @@ public class EncoderIOCANcoder extends EncoderIO {
             Alerts.create("Used sim-only method setMechPosition on " + getName(), AlertType.kWarning);
             return;
         }
-        // Reverse the position calculation:
-        // 1. Add back the software offset: position + extraOffset
-        // 2. Apply gear ratio: (position + extraOffset) * encoderRatio
-        // 3. Convert to rotations: ((position + extraOffset) * encoderRatio) / 2π
-        // 4. Add hardware offset: final + MagnetOffset
-        double encoderPos =
-                Units.radiansToRotations((position + extraOffset) * encoderRatio) - config.MagnetSensor.MagnetOffset;
 
-        // Apply inversion if configured
-        encoderPos = config.MagnetSensor.SensorDirection.equals(SensorDirectionValue.Clockwise_Positive)
-                ? -encoderPos
-                : encoderPos;
-        sim.setRawPosition(encoderPos);
+        // Convert mechanism position to encoder rotations (this is what getPosition() should return)
+        double targetPosition = Units.radiansToRotations(position * encoderRatio);
+
+        // Account for offset: reportedPosition = rawPosition - simOffset
+        // So: rawPosition = targetPosition + simOffset
+        double rawPosition = targetPosition + simOffset;
+
+        // Apply inversion: SimState ignores invert settings, but getPosition() applies them.
+        // For inverted (Clockwise_Positive): getPosition() = -rawPosition - simOffset
+        // So we need: rawPosition = -(targetPosition + simOffset)
+        if (config.MagnetSensor.SensorDirection.equals(SensorDirectionValue.Clockwise_Positive)) {
+            rawPosition = -rawPosition;
+        }
+
+        sim.setRawPosition(rawPosition);
     }
 
     /**
      * Sets the simulated mechanism velocity.
-     * @param velocity Mechanism velocity in mech units per second
+     *
+     * <p>Phoenix 6 simulation note: The SimState API ignores device invert settings.
+     * Inversion is applied when reading via getVelocity(), not when setting velocity.
+     * So for inverted encoders, we must negate the velocity we set.
+     *
+     * @param velocity Mechanism velocity in mechanism radians per second
      */
     @Override
     public void setMechVelocity(double velocity) {
@@ -222,13 +216,15 @@ public class EncoderIOCANcoder extends EncoderIO {
             Alerts.create("Used sim-only method setMechVelocity on " + getName(), AlertType.kWarning);
             return;
         }
-        // Convert mechanism velocity to encoder velocity
+
+        // Convert mechanism velocity to encoder velocity (rotations per second)
         double encoderVel = Units.radiansToRotations(velocity * encoderRatio);
 
-        // Apply inversion if configured
-        encoderVel = config.MagnetSensor.SensorDirection.equals(SensorDirectionValue.Clockwise_Positive)
-                ? -encoderVel
-                : encoderVel;
+        // Apply inversion: SimState ignores invert settings, but getVelocity() applies them.
+        if (config.MagnetSensor.SensorDirection.equals(SensorDirectionValue.Clockwise_Positive)) {
+            encoderVel = -encoderVel;
+        }
+
         sim.setVelocity(encoderVel);
     }
 

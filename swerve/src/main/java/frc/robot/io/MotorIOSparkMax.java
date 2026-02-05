@@ -465,7 +465,7 @@ public class MotorIOSparkMax extends MotorIO {
     }
 
     @Override
-    public void setGearRatio(double gearRatio) {
+    public void connectInternalSensor(double gearRatio) {
         this.gearRatio = gearRatio;
     }
 

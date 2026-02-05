@@ -35,9 +35,9 @@ public class SwerveSim extends SubsystemBase {
             states[i] = moduleSims[i].getState();
 
             states[i].angle = states[i].angle.plus(Rotation2d.fromRotations(
-                    (Math.random() * 2 - 1) * Constants.simSwerveError)); // Random angle error for simulation
-            states[i].speedMetersPerSecond *=
-                    (1 + (Math.random() * 2 - 1) * Constants.simSwerveError); // Random speed error for simulation
+                    (Math.random() * 2 - 1) * Swerve.Constants.simSwerveError)); // Random angle error for simulation
+            states[i].speedMetersPerSecond *= (1
+                    + (Math.random() * 2 - 1) * Swerve.Constants.simSwerveError); // Random speed error for simulation
         }
         ChassisSpeeds speeds = kinematics.toChassisSpeeds(states);
         Twist2d twist = speeds.toTwist2d(Constants.loopTime);
